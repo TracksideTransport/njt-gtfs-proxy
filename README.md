@@ -99,7 +99,7 @@ Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.n
 
 Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, are filled from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. Where a PDF row and the site disagree, the PDF row is kept. `data/fares/planner_mismatches.csv` lists the differences. The published New York one-way prices match the site except Nanuet, Pearl River, and Spring Valley (chart $19.75, site $11.55). The three Proposed charts do not match the site's one-way prices. A `$0.00` pass on the site is stored as blank, not as a free fare.
 
-The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Port Jervis Line stations beyond Suffern stay unpriced: the charts point at Metro-North tables that are not in these PDFs.
+The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Stations beyond Suffern are not on the New York chart (it points at Metro-North tables). They do not share a trip with New York Penn, so there is no New York fare for them. Pairs they do share, including Hoboken and Newark Penn, come from the trip planner.
 
 Refresh the CSVs after replacing a PDF:
 
