@@ -20,6 +20,7 @@
 //! - [`config`] — environment variables and [`Config`].
 //! - [`http`] — axum routes and [`ACCESS_KEY_HEADER`].
 //! - [`cache`] — [`FeedCache`], the short TTL in front of NJ Transit.
+//! - [`fares`] — checked-in rail fares added to `GET /rail/gtfs.zip`.
 //!
 //! The token manager and upstream client live in [`njt_client`] so another
 //! binary can reuse them without this HTTP server.
@@ -57,10 +58,12 @@
 
 pub mod cache;
 pub mod config;
+pub mod fares;
 pub mod http;
 
 pub use cache::FeedCache;
 pub use config::{Config, ConfigError};
+pub use fares::{augment_rail_gtfs, AugmentedGtfs, FareError};
 pub use http::ACCESS_KEY_HEADER;
 
 use std::net::SocketAddr;

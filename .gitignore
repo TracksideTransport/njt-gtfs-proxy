@@ -1,8 +1,11 @@
 /target
 **/target
+**/__pycache__/
 **/*.rs.bk
 .env
 .env.*
 *.token-cache.json
 token-cache.json
 *.pdf
+# Official rail fare tables are checked-in source data, not captured API payloads.
+!data/fares/source/*.pdf

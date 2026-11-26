@@ -1,0 +1,54 @@
+                          FARES TO / FROM PENN STATION NEWARK
+                & continuing to HOBOKEN TERMINAL via Waterfront Connection
+                                From Newark Division Stations
+                       CHILD                                                                       NORTH JERSEY           NORTHEAST               RARITAN
+             ADULT     SR /DIS    ADULT   CHILD    10 -                                  SCHOOL       COAST                CORRIDOR               VALLEY
+  ZONE        OW        OW         RT      RT      TRIP    WEEKLY   FLEXPASS   MONTHLY   MONTHLY       LINE                  LINE                   LINE
+                                                                                                     BAY HEAD JCT.
+    23        15.15     6.90      30.30   13.80   151.50   130.00    257.55     429.00    322.00     PT. PLEASANT
+                                                                                                     MANASQUAN
+    22        15.15     6.90      30.30   13.80   151.50   130.00    257.55     429.00    322.00      SPRING LAKE            TRENTON
+                                                                                                        BELMAR
+                                                                                                    BRADLEY BEACH                                 HIGH BRIDGE
+    21        14.60     6.55      29.20   13.10   146.00   123.50    248.20     408.00    305.00      ASBURY PARK
+                                                                                                      ALLENHURST
+                                                                                                        ELBERON              HAMILTON             ANNANDALE
+    20        14.60     6.55      29.20   13.10   146.00   123.50    248.20     408.00    305.00     LONG BRANCH     (SEE CHART BELOW)             LEBANON
+                                                                                                                            PRINCETON
+
+    19        14.30     6.20      28.60   12.40   143.00   119.00    243.10     396.00    297.00   MONMOUTH PARK            PRINCETON            WHITE HOUSE
+                                                                                                    LITTLE SILVER            JUNCTION
+    18        14.30     6.20      28.60   12.40   143.00   119.00    243.10     396.00    297.00      RED BANK                                   NORTHBRANCH
+
+    17        13.35     5.90      26.70   11.80   133.50   117.50    226.95     385.00    289.00    MIDDLETOWN                                     RARITAN
+                                                                                                                                                  SOMERVILLE
+    16        13.05     5.90      26.10   11.80   130.50   112.50    221.85     376.00    283.00       HAZLET
+
+    15        12.75     5.90      25.50   11.80   127.50   109.50    216.75     362.00    271.00      MATAWAN                                    BRIDGEWATER
+                                                                                                                           JERSEY AVE.           BOUND BROOK
+    14        11.80     5.30      23.60   10.60   118.00    99.50    200.60     328.00    247.00                         NEW BRUNSWICK
+    13        10.95     4.90      21.90   9.80    109.50    93.50    186.15     309.00    231.00    SOUTH AMBOY              EDISON
+    12        9.70      4.55      19.40   9.10     97.00    82.50    164.90     276.00    206.00    PERTH AMBOY                                   DUNELLEN
+    11        9.10      4.25      18.20   8.50     91.00    78.50    154.70     255.00    191.00                            METUCHEN              PLAINFIELD
+    10        7.85      3.65      15.70   7.30     78.50    66.00    133.45     222.00    165.00    WOODBRIDGE              METRO PARK           NETHERWOOD
+     9        6.60      2.90      13.20   5.80     66.00    62.00    112.20     206.00    155.00      AVENEL                                      FANWOOD
+
+    8         6.05      2.90      12.10   5.80    60.50     53.00    102.85     175.00    131.00                              RAHWAY              WESTFIELD
+                                                                                                                                                  GARWOOD
+    7         5.05      2.25      10.10   4.50    50.50     46.00    85.85      152.00    115.00                              LINDEN              CRANFORD
+
+    6         4.20      1.90      8.40    3.80    42.00     36.50    71.40      117.00    87.00                                                  ROSELLE PARK
+
+                                                                                                                            ELIZABETH            UNION STATION
+    5         3.65      1.55      7.30    3.10    36.50     29.50    62.05      98.00     74.00                            NO. ELIZABETH
+
+                                                                                                                           PENN STATION
+                                                                                                                             NEWARK
+            EXCEPTIONS TO ABOVE
+                        CHILD
+              ADULT    SR /DIS    ADULT   CHILD     10 -                                 SCHOOL                      via Waterfront Connection
+                OW        OW        RT      RT     TRIP    WEEKLY   FLEXPASS   MONTHLY   MONTHLY                          HOBOKEN
+HOBOKEN        4.20      1.90      8.40    3.80    42.00    36.50      71.40    117.00     87.00                           TERMINAL
+SECAUCUS       5.05      2.25     10.10    4.50    50.50    46.00      85.85    152.00    115.00
+PRINCETON     16.40      7.55     32.80   15.10   164.00   140.50     278.80    463.00    346.00
+

@@ -1,0 +1,100 @@
+                  ATLANTIC CITY RAIL LINE
+
+Fares To/From                Child
+ Atlantic City     Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+   Absecon           1.80       0.85     15.50     30.60       52.00     39.00
+
+  Egg Harbor         4.20       1.90     36.50     71.40     117.00      87.00
+
+ Hammonton           6.05       2.90     53.00    102.85     175.00     131.00
+
+     Atco            6.05       2.90     53.00    102.85     175.00     131.00
+
+  Lindenwold         6.30       2.90     56.00    107.10     184.00     135.00
+
+  Cherry Hill        8.45       3.90     74.50    143.65     241.00     181.00
+
+ Pennsauken          8.45       3.90     74.50    143.65     241.00     181.00
+ Philadelphia       13.05       5.90   114.50     221.85     376.00     283.00
+
+Fares To/From                Child
+   Absecon         Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+  Egg Harbor         1.80       0.85     15.50     30.60       52.00     39.00
+
+ Hammonton           4.80       2.25     42.50     81.60     140.00     106.00
+
+     Atco            5.05       2.25     46.00     85.85     152.00     115.00
+
+  Lindenwold         5.05       2.25     46.00     85.85     152.00     115.00
+
+  Cherry Hill        7.85       3.65     66.00    133.45     222.00     165.00
+
+ Pennsauken          7.85       3.65     66.00    133.45     222.00     165.00
+ Philadelphia       12.45       5.60   104.00     211.65     343.00     257.00
+
+ Fares To/From               Child
+Egg Harbor City    Adult     Sr/Dis                                    School
+      and         One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+ Hammonton           2.65       1.20     21.50     45.05       73.00     52.00
+
+     Atco            4.50       1.90     38.00     76.50     124.00      92.00
+
+  Lindenwold         5.05       2.25     46.00     85.85     152.00     115.00
+
+  Cherry Hill        7.85       3.65     66.00    133.45     222.00     165.00
+
+ Pennsauken          7.85       3.65     66.00    133.45     222.00     165.00
+ Philadelphia       12.45       5.60   104.00     211.65     343.00     257.00
+
+                  ATLANTIC CITY RAIL LINE
+
+
+Fares To/From                Child
+ Hammonton         Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+     Atco            1.80       0.85     15.50     30.60       52.00     39.00
+  Lindenwold         3.65       1.55     30.50     62.05       98.00     74.00
+  Cherry Hill        5.75       2.55     47.00      97.75    159.00     119.00
+ Pennsauken          5.75       2.55     47.00     97.75     159.00     119.00
+ Philadelphia        9.70       4.55     84.50    164.90     276.00     206.00
+
+Fares To/From                Child
+    Atco           Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+  Lindenwold         1.80       0.85     15.50     30.60       52.00     39.00
+  Cherry Hill        4.20       1.90     36.50      71.40    117.00      87.00
+ Pennsauken          4.20       1.90     36.50     71.40     117.00      87.00
+ Philadelphia        8.45       3.90     74.50    143.65     241.00     181.00
+
+Fares To/From                Child
+ Lindenwold        Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+  Cherry Hill        2.40       1.15     18.50      40.80      59.00     45.00
+ Pennsauken          2.40       1.15     18.50     40.80       59.00     45.00
+ Philadelphia        6.30       2.90     56.00    107.10     184.00     135.00
+
+Fares To/From                Child
+  Cherry Hill      Adult     Sr/Dis                                    School
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+ Pennsauken          1.80       0.85     15.50     30.60       52.00     39.00
+ Philadelphia        5.05       2.25     46.00     85.85     152.00     115.00
+
+
+
+Fares To/From                Child
+
+ Pennsauken        Adult     Sr/Dis                                    School
+
+     and          One Way   One Way    Weekly    FlexPass   Monthly    Monthly
+
+ Philadelphia        5.05       2.25     46.00     85.85     152.00     115.00
+

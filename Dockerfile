@@ -6,6 +6,7 @@ FROM rust:1-bookworm AS builder
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
+COPY data ./data
 RUN cargo build --release --locked -p njt-gtfs-proxy
 
 FROM debian:bookworm-slim
