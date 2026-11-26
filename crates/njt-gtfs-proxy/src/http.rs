@@ -16,6 +16,7 @@ use njt_client::{constant_time_eq, ApiKind, Client, Error, Feed, Secret};
 use serde::Serialize;
 
 use crate::cache::FeedCache;
+use crate::fares::{self, FARE_HEADER, FARE_HEADER_ADDED, FARE_HEADER_PASSTHROUGH};
 use crate::tracks::TrackHub;
 
 /// Header clients must send when `NJT_PROXY_ACCESS_KEY` is set.
@@ -452,7 +453,7 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
             async move {
                 let raw = client.fetch(feed).await?;
                 if api == ApiKind::Rail && feed == Feed::Static {
-                    Ok(tracks.inject(raw))
+                    Ok(finish_rail_static(&tracks, raw))
                 } else {
                     Ok(raw)
                 }
@@ -464,7 +465,7 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
         Err(err) => Err(err),
     };
     match fetched {
-        Ok((body, hit)) => feed_response(feed, body, hit, ttl_of(state, feed)),
+        Ok((body, hit)) => feed_response(feed, body, hit, ttl_of(state, feed), api),
         Err(err) => {
             tracing::warn!(api = %api, feed = %feed, error = %err, "feed request failed");
             error_response(&err)
@@ -524,7 +525,7 @@ async fn prepare_trips(
                     let tracks = Arc::clone(&tracks);
                     async move {
                         let raw = rail.fetch(Feed::Static).await?;
-                        Ok(tracks.inject(raw))
+                        Ok(finish_rail_static(&tracks, raw))
                     }
                 })
                 .await;
@@ -613,6 +614,7 @@ fn ttl_of(state: &AppState, feed: Feed) -> Duration {
 /// * `body` — Payload bytes.
 /// * `hit` — Whether the response cache supplied the body.
 /// * `ttl` — Value used for `Cache-Control: max-age`.
+/// * `api` — Rail responses for the static zip also set [`FARE_HEADER`].
 ///
 /// # Returns
 ///
@@ -634,23 +636,119 @@ fn ttl_of(state: &AppState, feed: Feed) -> Duration {
 ///
 /// assert_eq!(Feed::Static.content_type(), "application/zip");
 /// ```
-fn feed_response(feed: Feed, body: bytes::Bytes, hit: bool, ttl: Duration) -> Response {
+fn feed_response(
+    feed: Feed,
+    body: bytes::Bytes,
+    hit: bool,
+    ttl: Duration,
+    api: ApiKind,
+) -> Response {
     let cache_control = format!("max-age={}", ttl.as_secs());
     let hit_label = if hit { "hit" } else { "miss" };
-    Response::builder()
+    let mut builder = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, feed.content_type())
         .header(header::CACHE_CONTROL, cache_control)
-        .header("x-cache", hit_label)
-        .body(Body::from(body))
-        .unwrap_or_else(|_| {
-            json_error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "internal",
-                "could not build the feed response",
-                None,
-            )
-        })
+        .header("x-cache", hit_label);
+    if api == ApiKind::Rail && feed == Feed::Static {
+        let fare_state = if fares::zip_has_fare_rules(&body) {
+            FARE_HEADER_ADDED
+        } else {
+            FARE_HEADER_PASSTHROUGH
+        };
+        builder = builder.header(FARE_HEADER, fare_state);
+    }
+    builder.body(Body::from(body)).unwrap_or_else(|_| {
+        json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal",
+            "could not build the feed response",
+            None,
+        )
+    })
+}
+
+/// Adds fare files, then platform stops, then fare areas on those platforms.
+///
+/// Fare injection runs first so each track child copies the fare `zone_id`.
+/// [`fares::inherit_track_fare_areas`] then lists `{stop_id}:station` and
+/// `{stop_id}:track:{label}` in `stop_areas.txt`.
+///
+/// # Arguments
+///
+/// * `tracks` — Platform catalog. Injection is a no-op when tracks are off.
+/// * `body` — Upstream rail `getGTFS` body.
+///
+/// # Returns
+///
+/// The zip served at `GET /rail/gtfs.zip`.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic. A corrupt checked-in fare CSV panics inside
+/// [`fares::augment_rail_gtfs`].
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::fares::FARE_HEADER;
+///
+/// assert_eq!(FARE_HEADER, "x-njt-fares");
+/// ```
+fn finish_rail_static(tracks: &TrackHub, body: bytes::Bytes) -> bytes::Bytes {
+    let priced = augment_static(body);
+    let with_tracks = tracks.inject(priced);
+    match fares::inherit_track_fare_areas(&with_tracks) {
+        Ok(bytes) => bytes::Bytes::from(bytes),
+        Err(err) => {
+            tracing::error!(error = %err, "serving rail platforms without inherited fare areas");
+            with_tracks
+        }
+    }
+}
+
+/// Adds checked-in rail fares to a static zip, or returns the original bytes.
+///
+/// A fare-table failure is logged and the upstream zip is still served so a
+/// schedule download is not blocked. The detail is not a credential.
+///
+/// # Arguments
+///
+/// * `body` — Upstream `getGTFS` body.
+///
+/// # Returns
+///
+/// Zip bytes, with fare files when `body` is a rail GTFS zip.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic. A corrupt checked-in fare CSV panics inside
+/// [`fares::augment_rail_gtfs`], which is a build error rather than a request
+/// failure.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::fares::FARE_HEADER;
+///
+/// assert_eq!(FARE_HEADER, "x-njt-fares");
+/// ```
+fn augment_static(body: bytes::Bytes) -> bytes::Bytes {
+    match fares::augment_rail_gtfs(&body) {
+        Ok(augmented) => bytes::Bytes::from(augmented.bytes),
+        Err(err) => {
+            tracing::error!(error = %err, "serving the rail GTFS zip without added fares");
+            body
+        }
+    }
 }
 
 /// Maps a client error to an HTTP response.

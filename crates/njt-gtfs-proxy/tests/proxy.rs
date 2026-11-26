@@ -130,6 +130,7 @@ async fn rail_feeds_use_zip_and_protobuf_types() {
         headers.get("content-type").unwrap().to_str().unwrap(),
         "application/zip"
     );
+    assert_eq!(headers.get("x-njt-fares").unwrap(), "passthrough");
     assert_eq!(headers.get("x-cache").unwrap(), "miss");
 
     let (status, body, headers) = get(router.clone(), "/rail/trip-updates.pb", None).await;

@@ -1,0 +1,4 @@
+stop_id,stop_name,routes,reason
+,Monmouth Park,,printed_in_zone_19_but_absent_from_rail_gtfs_and_not_a_planner_pair
+,Kingsland,,printed_in_zone_2_but_absent_from_rail_gtfs
+40570,MEADOWLANDS RAIL STATION,MRL,trip_planner_returned_no_fare

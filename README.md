@@ -20,13 +20,13 @@ Rail `getGTFS` answers an unauthenticated GET on both `testraildata.njtransit.co
 
 ### Fares in `/rail/gtfs.zip`
 
-[PR #2](https://github.com/sohampatwardhan/njt-gtfs-proxy/pull/2) (`cursor/rail-fares-3721`) injects 2026 NJ Transit rail fares into the static zip after the download: Fares v2 files plus legacy `fare_attributes.txt` and `fare_rules.txt`, using zone areas taken from the official fare tables. That change is not in this branch. It lands when that PR merges. Bus zips are not affected.
+The static rail zip gains Fares v2 files and legacy `fare_attributes.txt` / `fare_rules.txt` from the 2026 fare tables, with same-line pairs the tables skip filled from the njtransit.com trip planner. Each priced stop is its own fare area. The PDF amount is kept when the site disagrees. Bus zips are not affected. Details are in [Rail fares](#rail-fares).
 
 ### Tracks in `/rail/trip-updates.pb`
 
 NJ Transit's trip updates already carry the track on `StopTimeUpdate.stop_time_properties.stop_headsign`, as `Track:1`, `Track:11`, or `Track:Single`. On a test snapshot from 26 Nov 2026 (12:25 AM ET) that text was present on 44/44 trip updates and 657/679 stop-time rows, and `assigned_stop_id` was never set. This proxy reads that headsign. It does not call RailData again to do so.
 
-`/rail/gtfs.zip` gains one platform stop per track at the stations below, mirroring the MBTA commuter-rail model ([MBTA GTFS](https://cdn.mbta.com/MBTA_GTFS.zip)): a parent stop with `location_type` 1, the original stop kept as the generic child (`platform_name` `Rail`) so existing `stop_times` rows still resolve, and one child per track with `platform_code`, `platform_name` `Rail - Track {code}`, `stop_desc` `{station} - Rail - Track {code}`, the station's coordinates, and the station's `zone_id`. There is no `levels.txt`, so `level_id` is left empty. Stop ids follow the Amtrak GTFS-RT convention: `105:station` and `105:track:11`. The original `stop_id` is not promoted to a station, because `stop_times` reference it and a `location_type` 1 stop cannot be used there.
+`/rail/gtfs.zip` gains one platform stop per track at the stations below, mirroring the MBTA commuter-rail model ([MBTA GTFS](https://cdn.mbta.com/MBTA_GTFS.zip)): a parent stop with `location_type` 1, the original stop kept as the generic child (`platform_name` `Rail`) so existing `stop_times` rows still resolve, and one child per track with `platform_code`, `platform_name` `Rail - Track {code}`, `stop_desc` `{station} - Rail - Track {code}`, the station's coordinates, and the station's `zone_id`. Fare files are written first, so that `zone_id` is the fare area, and each platform stop is added to `stop_areas.txt`. There is no `levels.txt`, so `level_id` is left empty. Stop ids follow the Amtrak GTFS-RT convention: `105:station` and `105:track:11`. The original `stop_id` is not promoted to a station, because `stop_times` reference it and a `location_type` 1 stop cannot be used there.
 
 The realtime feed then sets `stop_time_properties.assigned_stop_id` to that platform stop. NJ Transit's `stop_id`, times, and `stop_headsign` are left as sent. An `assigned_stop_id` NJ Transit already set is not replaced.
 
@@ -56,13 +56,60 @@ Station-board polling (`getTrainSchedule19Rec` on `/api/TrainData`) is a fallbac
 | GET | Upstream | Content-Type |
 | --- | --- | --- |
 | `/healthz` | none | `application/json` |
-| `/rail/gtfs.zip` | rail `getGTFS` | `application/zip` |
+| `/rail/gtfs.zip` | rail `getGTFS`, plus rail fare files from `data/fares/` | `application/zip` |
 | `/rail/trip-updates.pb` | rail `getTripUpdates` | `application/x-protobuf` |
 | `/rail/vehicle-positions.pb` | rail `getVehiclePositions` | `application/x-protobuf` |
 | `/rail/alerts.pb` | rail `getAlerts` | `application/x-protobuf` |
 | `/bus/gtfs.zip` and the three `/bus/*.pb` paths | bus G2 equivalents | same types |
 
 A rail route exists only when both `NJT_RAIL_USERNAME` and `NJT_RAIL_PASSWORD` are set. Bus is the same with the bus variables. Anything else returns 404. `/healthz` reports which side is enabled and does not require the access key.
+
+## Rail fares
+
+`GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes (short names HBLR, NLR, RVLN, RVR) are not part of the rail fare network, including when the developer zip marks every route `route_type` 113. Platform stops added for tracks (`{stop_id}:station` and `{stop_id}:track:{label}`) inherit that stop's fare area.
+
+The prices are NJ Transit's 2026 rail fare tables in `data/fares/source/`. One PDF is titled **Rail Fares 2026** (New York Penn Station, dated 2026-05-01). The Hoboken, Newark Penn, and Atlantic City PDFs are titled **Rail Proposed Fares 2026** (dated 2026-04-22). Each fare row records that title, status, date, and SHA-256. The adjusted-fares page links all four as the charts effective July 1, 2026.
+
+Fares are fixed. There is no peak or off-peak price, so the feed has no `timeframes.txt`.
+
+### One area per stop
+
+A stop has one `zone_id`. NJ Transit's printed zone number is not a fare: the same zone on the New York chart and the Hoboken chart is a different price, and an intermediate trip (Metropark to New Brunswick) is not the terminal price of either stop. Each priced GTFS stop is therefore its own area, `njt_stop_{stop_id}`, named with the stop name. Both Secaucus platforms share `njt_secaucus`. `fare_leg_rules.txt` is keyed by `network_id` `njt_rail` plus `from_area_id` / `to_area_id` for each priced pair.
+
+`stops.zone_id` for a priced rail stop is that area id. Upstream `zone_id` values are internal ids (light rail stops share one of them) and are left in place for stops this table does not price. Fares v1 `fare_rules.txt` uses those area ids as `origin_id` and `destination_id`. v1 publishes the adult one-way price only, with `payment_method` 1 and an empty `transfers` field so the fare is the origin-to-destination ticket rather than a per-leg add-on.
+
+### Products
+
+For each priced pair the feed includes:
+
+| Product | Who | Amount column |
+| --- | --- | --- |
+| Adult one-way | `adult` (default) | Adult one-way |
+| Child, senior, and disabled one-way | three rider categories, one price | Child / senior / disabled one-way |
+| 10-trip, weekly, FlexPass, monthly | `adult` | those columns |
+| School monthly | `student` | School monthly |
+
+The one-way ticket media is the NJ TRANSIT app or vending machine (same price). Round-trip amounts are kept in `data/fares/fares.csv` and are not leg products: a GTFS leg is one way, and several exception round trips are not twice the one-way fare.
+
+`fare_leg_join_rules.txt` joins any two `njt_rail` legs that meet at the same stop. A New York–Secaucus–Trenton ride is then priced as New York to Trenton when that pair is in the table. There is no separate transfer charge in these charts, so there is no `fare_transfer_rules.txt`.
+
+### Coverage and gaps
+
+Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.njtransit.com/rail_data.zip`, stops dated 2026-11-19) that the charts or the trip planner price. Secaucus upper and lower level share one area.
+
+Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, are filled from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. Where a PDF row and the site disagree, the PDF row is kept. `data/fares/planner_mismatches.csv` lists the differences. The published New York one-way prices match the site except Nanuet, Pearl River, and Spring Valley (chart $19.75, site $11.55). The three Proposed charts do not match the site's one-way prices. A `$0.00` pass on the site is stored as blank, not as a free fare.
+
+The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Stations beyond Suffern are not on the New York chart (it points at Metro-North tables). They do not share a trip with New York Penn, so there is no New York fare for them. Pairs they do share, including Hoboken and Newark Penn, come from the trip planner.
+
+Refresh the CSVs after replacing a PDF:
+
+```bash
+python3 scripts/refresh_fares.py
+# rematch stop ids, then fill same-line pairs from the trip planner (about one request per second):
+python3 scripts/refresh_fares.py --gtfs rail_data.zip --planner
+```
+
+The script needs `pdfminer.six`. It does not call the RailData API.
 
 ## Configure
 
@@ -258,7 +305,8 @@ GTFS_MCP_HTTP_HEADERS = "{\"x-njt-proxy-key\":\"replace-me\"}"
 ## Layout
 
 - `crates/njt-client` — reusable rail and bus client, token manager, and mode-`0600` cache. A second binary can depend on this crate without the HTTP server.
-- `crates/njt-gtfs-proxy` — axum GET server and response cache.
+- `crates/njt-gtfs-proxy` — axum GET server, response cache, and rail fare files added to `/rail/gtfs.zip`.
+- `data/fares/` — checked-in 2026 rail fare tables and the PDFs they were read from. `scripts/refresh_fares.py` rebuilds the CSVs.
 
 Tests talk to a local mock only. They use placeholder usernames and fake tokens.
 
