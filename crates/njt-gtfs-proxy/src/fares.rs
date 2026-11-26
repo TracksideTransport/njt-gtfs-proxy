@@ -1813,9 +1813,10 @@ mod tests {
         let rules = read_named(&augmented.bytes, "fare_rules.txt");
         assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
         assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_148,njt_stop_105"));
-        assert!(!rules.contains("njt_stop_105,njt_stop_63"));
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_63,njt_stop_105,njt_stop_63"));
         let attributes = read_named(&augmented.bytes, "fare_attributes.txt");
         assert!(attributes.contains("ow_adult_njt_stop_105_njt_stop_148,20.35,USD,1,"));
+        assert!(attributes.contains("ow_adult_njt_stop_105_njt_stop_63,5.05,USD"));
         let areas = read_named(&augmented.bytes, "areas.txt");
         assert!(areas.contains("njt_stop_148,TRENTON TRANSIT CENTER"));
         let routes = read_named(&augmented.bytes, "route_networks.txt");
