@@ -173,6 +173,8 @@ struct StationArea {
     area_id: String,
     /// Rider-facing area name.
     area_name: String,
+    /// The stop is on the Atlantic City Rail Line (`ATLC` in `stations.csv`).
+    atlantic_city_line: bool,
 }
 
 /// Checked-in fares and the stops they price.
@@ -339,10 +341,12 @@ fn read_stations(text: &str) -> Result<HashMap<String, StationArea>, FareError> 
     let mut stations = HashMap::new();
     for record in reader.records() {
         let record = record.map_err(|err| FareError::new(err.to_string()))?;
+        let routes = column(&headers, &record, "routes")?;
         let station = StationArea {
             stop_id: column(&headers, &record, "stop_id")?,
             area_id: column(&headers, &record, "area_id")?,
             area_name: column(&headers, &record, "area_name")?,
+            atlantic_city_line: routes.split_whitespace().any(|route| route == "ATLC"),
         };
         stations.insert(station.stop_id.clone(), station);
     }
@@ -677,6 +681,46 @@ fn fare_base_stop(stop_id: &str) -> Option<&str> {
     stop_id.split_once(":track:").map(|(base, _)| base)
 }
 
+/// A fare that leaves the Atlantic City Rail Line.
+///
+/// The line has no NJ Transit rail connection. Philadelphia 30th Street is its
+/// only meeting point with SEPTA, and no other NJ Transit rail line serves
+/// that station. Trenton Transit Center is the only other shared SEPTA
+/// station, and that transfer is outside this fare system. Exactly one
+/// Atlantic City end means there is no through fare and no joint fare.
+///
+/// # Arguments
+///
+/// * `acrl_areas` — Area ids whose stops are on `ATLC`.
+/// * `fare` — One checked-in pair.
+///
+/// # Returns
+///
+/// `true` when one end is on the Atlantic City Rail Line and the other is not.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Generation drops these pairs inside [`augment_rail_gtfs`].
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn crosses_atlantic_city_line(acrl_areas: &BTreeSet<&str>, fare: &Fare) -> bool {
+    let origin = acrl_areas.contains(fare.origin_area_id.as_str());
+    let destination = acrl_areas.contains(fare.destination_area_id.as_str());
+    origin != destination
+}
+
 /// Generated fare files plus the rewritten stop table.
 struct Generated {
     /// `stops.txt` with priced `zone_id` values.
@@ -686,6 +730,11 @@ struct Generated {
 }
 
 /// Builds fare files for the stops and routes in this zip.
+///
+/// A pair with one end on the Atlantic City Rail Line and the other end off
+/// that line is omitted. The line does not connect to other NJ Transit rail,
+/// and a price quoted through Philadelphia 30th Street or Trenton is not a
+/// joint fare.
 ///
 /// # Arguments
 ///
@@ -786,11 +835,18 @@ fn generate(
             .or_insert_with(|| area_name.clone());
     }
 
+    let acrl_areas: BTreeSet<&str> = catalog
+        .stations
+        .values()
+        .filter(|station| station.atlantic_city_line)
+        .map(|station| station.area_id.as_str())
+        .collect();
     let mut usable = Vec::new();
     for fare in &catalog.fares {
         if present_areas.contains_key(&fare.origin_area_id)
             && present_areas.contains_key(&fare.destination_area_id)
             && fare.origin_area_id != fare.destination_area_id
+            && !crosses_atlantic_city_line(&acrl_areas, fare)
         {
             usable.push(fare);
         }
@@ -1832,6 +1888,48 @@ mod tests {
         assert!(!leg.contains("timeframe"));
         let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
         assert!(stop_areas.contains("6900,njt_nlr"));
+    }
+
+    #[test]
+    fn atlantic_city_line_is_not_a_through_fare() {
+        let acrl_areas: BTreeSet<&str> = catalog()
+            .stations
+            .values()
+            .filter(|station| station.atlantic_city_line)
+            .map(|station| station.area_id.as_str())
+            .collect();
+        assert!(acrl_areas.contains("njt_stop_1"));
+        assert!(acrl_areas.contains("njt_stop_10"));
+        for fare in &catalog().fares {
+            assert!(
+                !crosses_atlantic_city_line(&acrl_areas, fare),
+                "{} to {} is not a through fare",
+                fare.origin_name,
+                fare.destination_name
+            );
+        }
+
+        let mut files = BTreeMap::new();
+        files.insert(
+            "stops.txt".to_string(),
+            b"stop_id,stop_name,zone_id\n1,30TH ST. PHL.,1\n10,ATLANTIC CITY,1\n105,NEW YORK PENN STATION,329\n148,TRENTON TRANSIT CENTER,5709\n".to_vec(),
+        );
+        files.insert(
+            "routes.txt".to_string(),
+            b"route_id,route_short_name,route_type\n1,ATLC,2\n10,NEC,2\n".to_vec(),
+        );
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        let rules = read_named(&augmented.bytes, "fare_rules.txt");
+        assert!(rules.contains("ow_adult_njt_stop_1_njt_stop_10,njt_stop_1,njt_stop_10"));
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
+        assert!(!rules.contains("njt_stop_1,njt_stop_105"));
+        assert!(!rules.contains("njt_stop_1,njt_stop_148"));
+        assert!(!rules.contains("njt_stop_10,njt_stop_105"));
+        let attributes = read_named(&augmented.bytes, "fare_attributes.txt");
+        assert!(attributes.contains("ow_adult_njt_stop_1_njt_stop_10,13.05,USD"));
+        assert!(!attributes.contains("ow_adult_njt_stop_1_njt_stop_105,"));
+        assert!(!attributes.contains("ow_adult_njt_stop_1_njt_stop_148,"));
+        assert!(!attributes.contains("ow_adult_njt_stop_10_njt_stop_105,"));
     }
 
     #[test]
