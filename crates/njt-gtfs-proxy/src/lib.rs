@@ -20,6 +20,7 @@
 //! - [`config`] — environment variables and [`Config`].
 //! - [`http`] — axum routes and [`ACCESS_KEY_HEADER`].
 //! - [`cache`] — [`FeedCache`], the short TTL in front of NJ Transit.
+//! - [`tracks`] — platform stops, `assigned_stop_id`, and optional station boards.
 //!
 //! The token manager and upstream client live in [`njt_client`] so another
 //! binary can reuse them without this HTTP server.
@@ -58,12 +59,14 @@
 pub mod cache;
 pub mod config;
 pub mod http;
+pub mod tracks;
 
 pub use cache::FeedCache;
 pub use config::{Config, ConfigError};
 pub use http::ACCESS_KEY_HEADER;
 
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 /// Reads the environment, binds [`Config::bind`], and serves until SIGINT or SIGTERM.
 ///
@@ -141,17 +144,24 @@ pub async fn run(config: Config) -> Result<(), ConfigError> {
         environment = config.environment(),
         rail = config.rail_enabled(),
         bus = config.bus_enabled(),
+        tracks = config.tracks_enabled(),
+        track_boards = config.track_boards_enabled(),
         access_key = config.access_key_required(),
         "listening"
     );
-    let app = config.router()?;
+    let (app, tracks) = config.open(Arc::new(njt_client::SystemClock))?;
+    let poller = tracks.spawn();
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(|err| ConfigError::bind(addr, err))?;
-    axum::serve(listener, app)
+    let result = axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .map_err(ConfigError::serve)?;
+        .map_err(ConfigError::serve);
+    if let Some(poller) = poller {
+        poller.abort();
+    }
+    result?;
     Ok(())
 }
 

@@ -23,7 +23,7 @@ use bytes::Bytes;
 use crate::api::{endpoint_url, ApiKind, Feed};
 use crate::clock::Clock;
 use crate::error::Error;
-use crate::payload::classify;
+use crate::payload::{accept_board, classify};
 use crate::store::TokenStore;
 use crate::token::{TokenManager, TokenManagerBuilder, TokenPolicy};
 
@@ -194,6 +194,10 @@ impl Client {
 
     /// Downloads one feed, refreshing the token at most once if it is rejected.
     ///
+    /// Rail `getGTFS` is fetched with an unauthenticated GET first. The token
+    /// POST runs only when that GET does not return a zip. Other feeds always
+    /// use the token POST.
+    ///
     /// # Arguments
     ///
     /// * `feed` — Static zip or a realtime protobuf.
@@ -235,6 +239,17 @@ impl Client {
     /// # }
     /// ```
     pub async fn fetch(&self, feed: Feed) -> Result<Bytes, Error> {
+        if self.api == ApiKind::Rail && feed == Feed::Static {
+            match self.get_rail_gtfs().await {
+                Ok(bytes) => return Ok(bytes),
+                Err(err) => {
+                    tracing::info!(
+                        error = %err,
+                        "rail getGTFS GET did not return a zip; posting with the token"
+                    );
+                }
+            }
+        }
         let token = self.tokens.current().await?;
         match self.post_feed(feed, token.expose()).await {
             Err(Error::InvalidToken) => {
@@ -248,6 +263,58 @@ impl Client {
             }
             other => other,
         }
+    }
+
+    /// GETs the rail static zip without a token.
+    ///
+    /// Rail `getGTFS` answers an unauthenticated GET on the test and production
+    /// hosts. The token POST remains the fallback when this response is not a zip.
+    ///
+    /// # Arguments
+    ///
+    /// This method takes no arguments.
+    ///
+    /// # Returns
+    ///
+    /// The zip bytes.
+    ///
+    /// # Errors
+    ///
+    /// * [`Error::Status`] when the HTTP status is not success.
+    /// * [`Error::UnexpectedPayload`] when the body is not a zip.
+    /// * [`Error::NullBody`] and [`Error::Upstream`] when the body is an error document.
+    /// * [`Error::Transport`] and [`Error::TooLarge`] for HTTP failures.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_client::{endpoint_url, ApiKind, Feed, RAIL_TEST_BASE};
+    ///
+    /// let url = endpoint_url(RAIL_TEST_BASE, ApiKind::Rail, Feed::Static.method()).expect("gtfs");
+    /// assert!(url.ends_with("/api/GTFSRT/getGTFS"));
+    /// ```
+    async fn get_rail_gtfs(&self) -> Result<Bytes, Error> {
+        let url = endpoint_url(&self.base, self.api, Feed::Static.method())?;
+        let response = self
+            .http
+            .get(&url)
+            .header("accept", "*/*")
+            .send()
+            .await
+            .map_err(|err| Error::Transport(Box::new(err)))?;
+        let status = response.status();
+        let bytes = read_body(response, Feed::Static.max_bytes()).await?;
+        if !status.is_success() {
+            return Err(Error::Status {
+                code: status.as_u16(),
+            });
+        }
+        classify(&bytes, Feed::Static.payload_kind())?;
+        Ok(bytes)
     }
 
     /// Posts `token` to the data method for `feed`.
@@ -299,6 +366,174 @@ impl Client {
         }
         Ok(bytes)
     }
+
+    /// Downloads one station departure board.
+    ///
+    /// The call is `getTrainSchedule19Rec` on the TrainData API: the next
+    /// departures at `station`, including the public or railroad track, without
+    /// the per-train stop list. The token comes from this client's manager, so
+    /// a [`ApiKind::TrainData`] client must be used. An invalid token is
+    /// refreshed once.
+    ///
+    /// # Arguments
+    ///
+    /// * `station` — Two-character station code, such as `NY`. It is sent as the
+    ///   `station` form field. `line` is sent empty so every line at the station
+    ///   is returned.
+    ///
+    /// # Returns
+    ///
+    /// The raw JSON object. The caller parses track rows. The token is not
+    /// included.
+    ///
+    /// # Errors
+    ///
+    /// * [`Error::Config`] when this client is not [`ApiKind::TrainData`] or
+    ///   `station` is not two ASCII letters or digits.
+    /// * [`Error::DailyLimit`], [`Error::LocalCap`], and [`Error::Backoff`] when
+    ///   a token cannot be minted.
+    /// * [`Error::InvalidToken`] when the reminted token is also rejected.
+    /// * [`Error::NullBody`] when the body is the literal `Null`.
+    /// * [`Error::Upstream`] for another JSON `errorMessage`.
+    /// * [`Error::UnexpectedPayload`] when the body is not a JSON object.
+    /// * [`Error::Transport`], [`Error::Status`], and [`Error::TooLarge`] for
+    ///   HTTP failures.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. Call it from a Tokio runtime.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_client::{endpoint_url, ApiKind, RAIL_TEST_BASE};
+    ///
+    /// let url = endpoint_url(RAIL_TEST_BASE, ApiKind::TrainData, "getTrainSchedule19Rec")
+    ///     .expect("board");
+    /// assert!(url.ends_with("/api/TrainData/getTrainSchedule19Rec"));
+    /// assert!(endpoint_url(RAIL_TEST_BASE, ApiKind::TrainData, "isValidToken").is_err());
+    /// ```
+    pub async fn fetch_station_board(&self, station: &str) -> Result<Bytes, Error> {
+        if self.api != ApiKind::TrainData {
+            return Err(Error::Config {
+                message: "station boards are requested with a TrainData client".to_string(),
+            });
+        }
+        let station = normalize_station(station)?;
+        let token = self.tokens.current().await?;
+        match self.post_board(&station, token.expose()).await {
+            Err(Error::InvalidToken) => {
+                tracing::info!(
+                    api = %self.api,
+                    station = %station,
+                    "upstream rejected the token; refreshing once"
+                );
+                let token = self.tokens.refresh_replacing(token.expose()).await?;
+                self.post_board(&station, token.expose()).await
+            }
+            other => other,
+        }
+    }
+
+    /// Posts `token` and `station` to `getTrainSchedule19Rec`.
+    ///
+    /// # Arguments
+    ///
+    /// * `station` — Two-character code already checked by [`normalize_station`].
+    /// * `token` — Current token. Not logged.
+    ///
+    /// # Returns
+    ///
+    /// The JSON body after [`accept_board`] accepts it.
+    ///
+    /// # Errors
+    ///
+    /// See [`Client::fetch_station_board`]. This method does not remint.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_client::{endpoint_url, ApiKind, RAIL_PRODUCTION_BASE};
+    ///
+    /// let url = endpoint_url(
+    ///     RAIL_PRODUCTION_BASE,
+    ///     ApiKind::TrainData,
+    ///     "getTrainSchedule19Rec",
+    /// )
+    /// .expect("board");
+    /// assert!(url.contains("/api/TrainData/"));
+    /// ```
+    async fn post_board(&self, station: &str, token: &str) -> Result<Bytes, Error> {
+        let url = endpoint_url(&self.base, self.api, "getTrainSchedule19Rec")?;
+        let form = reqwest::multipart::Form::new()
+            .text("token", token.to_string())
+            .text("station", station.to_string())
+            .text("line", String::new());
+        let response = self
+            .http
+            .post(&url)
+            .header("accept", "*/*")
+            .multipart(form)
+            .send()
+            .await
+            .map_err(|err| Error::Transport(Box::new(err)))?;
+        let status = response.status();
+        let bytes = read_body(response, BOARD_MAX_BYTES).await?;
+        accept_board(&bytes)?;
+        if !status.is_success() {
+            return Err(Error::Status {
+                code: status.as_u16(),
+            });
+        }
+        Ok(bytes)
+    }
+}
+
+/// Largest station-board body this client will buffer.
+///
+/// A 19-row board is much smaller than this. The cap rejects a runaway response
+/// before it is parsed.
+const BOARD_MAX_BYTES: usize = 2 * 1024 * 1024;
+
+/// Checks that `station` is a two-character code and returns it in uppercase.
+///
+/// # Arguments
+///
+/// * `station` — Caller-supplied station code.
+///
+/// # Returns
+///
+/// The uppercase code.
+///
+/// # Errors
+///
+/// Returns [`Error::Config`] when the value is not exactly two ASCII letters or
+/// digits. The error text does not echo the value.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_client::{endpoint_url, ApiKind, RAIL_TEST_BASE};
+///
+/// assert!(endpoint_url(RAIL_TEST_BASE, ApiKind::TrainData, "getTrainSchedule19Rec").is_ok());
+/// ```
+fn normalize_station(station: &str) -> Result<String, Error> {
+    let trimmed = station.trim();
+    let ok = trimmed.len() == 2 && trimmed.chars().all(|ch| ch.is_ascii_alphanumeric());
+    if !ok {
+        return Err(Error::Config {
+            message: "station code must be two letters or digits".to_string(),
+        });
+    }
+    Ok(trimmed.to_ascii_uppercase())
 }
 
 impl std::fmt::Debug for Client {

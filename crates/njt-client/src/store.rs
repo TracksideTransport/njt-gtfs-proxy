@@ -683,6 +683,10 @@ struct CacheBody {
     /// Bus record, when this file has stored bus state.
     #[serde(default)]
     bus: Option<ApiRecord>,
+    /// TrainData station-board token. Separate from [`Self::rail`] because
+    /// `/api/TrainData/getToken` has its own daily mint budget.
+    #[serde(default)]
+    train_data: Option<ApiRecord>,
 }
 
 impl CacheBody {
@@ -717,6 +721,7 @@ impl CacheBody {
         match api {
             ApiKind::Rail => self.rail.as_ref(),
             ApiKind::Bus => self.bus.as_ref(),
+            ApiKind::TrainData => self.train_data.as_ref(),
         }
     }
 
@@ -749,6 +754,7 @@ impl CacheBody {
         let slot = match api {
             ApiKind::Rail => &mut self.rail,
             ApiKind::Bus => &mut self.bus,
+            ApiKind::TrainData => &mut self.train_data,
         };
         slot.get_or_insert_with(ApiRecord::default)
     }
@@ -782,6 +788,7 @@ impl CacheBody {
         match api {
             ApiKind::Rail => self.rail.as_mut(),
             ApiKind::Bus => self.bus.as_mut(),
+            ApiKind::TrainData => self.train_data.as_mut(),
         }
     }
 }

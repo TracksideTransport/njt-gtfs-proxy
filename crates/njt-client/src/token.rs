@@ -674,7 +674,10 @@ async fn clear_backoff(inner: &TokenInner) {
 /// ```
 fn expiry_after(inner: &TokenInner, now: DateTime<Utc>) -> Result<DateTime<Utc>, Error> {
     match inner.api {
-        ApiKind::Rail => next_midnight_eastern(now),
+        // TrainData tokens last up to 24 hours and the mint budget resets at
+        // Eastern midnight. Expiring at that midnight stays inside both limits
+        // and spends at most one mint on each quota day.
+        ApiKind::Rail | ApiKind::TrainData => next_midnight_eastern(now),
         ApiKind::Bus => {
             let step = ChronoDuration::from_std(inner.policy.bus_token_ttl).map_err(|_| {
                 Error::Config {
