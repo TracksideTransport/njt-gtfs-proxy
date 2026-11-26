@@ -105,7 +105,7 @@ Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.n
 
 Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, come from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. When the planner and a PDF disagree, the planner amount is the one in the feed. `data/fares/planner_mismatches.csv` is the audit of those differences and is not what gets published. A `$0.00` pass on the site is treated as unsold: that field keeps the PDF amount when the chart has one, and is otherwise blank.
 
-The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Stations beyond Suffern are not on the New York chart (it points at Metro-North tables). They do not share a trip with New York Penn, so there is no New York fare for them. Pairs they do share, including Hoboken and Newark Penn, come from the trip planner.
+`gaps.csv` labels pairs that are not fare rules. Atlantic City Rail Line pairs that leave the line are `no single through ticket`: 1,274 the planner would not price, and 121 Philadelphia 30th Street quotes against other NJ Transit stations. There is no single through ticket between that line and the other NJ Transit rail lines. The River LINE connects them, from Trenton Transit Center to the Camden Entertainment Center, with a change at Pennsauken Transit Center for the Atlantic City Rail Line and at Walter Rand Transportation Center for PATCO at Broadway. Each leg is its own fare: the Atlantic City fare, the River LINE fare, and the Northeast Corridor fare. Philadelphia 30th Street is an Atlantic City Rail Line station that SEPTA also serves, and no other NJ Transit rail line serves it. Trenton Transit Center is the other station NJ Transit shares with SEPTA (Northeast Corridor and the SEPTA Trenton Line). That transfer is outside this fare system, so there is no joint SEPTA fare. Those pairs are not missing data. Meadowlands pairs are `meadowlands has no regular fare`. Pairs the planner returned no trip for are `no trip`. Kingsland and Monmouth Park are on a chart and absent from the rail GTFS. Stations beyond Suffern are not on the New York chart (it points at Metro-North tables). They do not share a trip with New York Penn, so there is no New York fare for them. Pairs they do share, including Hoboken and Newark Penn, come from the trip planner.
 
 Refresh the CSVs after replacing a PDF:
 
@@ -140,6 +140,21 @@ Not encoded, because they are not a light rail leg price in this zip:
 - A light rail monthly is also good for one bus zone. This zip has no bus fares.
 - Up to three children age 4 and under ride free. The weekend Family SuperSaver lets two children ages 5–11 ride free with a paying adult.
 - Hudson Go Pass and one-way-with-bus-transfer tickets are sold at light rail machines. They are bus and ferry products.
+
+## Connections outside this feed
+
+When both stops are in the zip, `transfers.txt` adds a `transfer_type` 2 walk in each direction. Pennsauken Transit Center is Atlantic City stop `43298` and River LINE stop `43288` (120 seconds, about 58 meters). Trenton Transit Center is Northeast Corridor stop `148` and River LINE stop `38291` (180 seconds, about 109 meters). A direction the upstream file already lists is left as published.
+
+PATCO and SEPTA publish their own feeds. Their stops are not in this zip, so it does not invent a cross-feed transfer.
+
+PATCO's GTFS, which already includes fares and `wheelchair_boarding`, is <https://rapid.nationalrtap.org/GTFSFileManagement/UserUploadFiles/13562/PATCO_GTFS.zip> (`feed_version` 22, 25 Nov 2026 through 31 Dec 2027).
+
+| Interchange | This feed | Other operator |
+| --- | --- | --- |
+| Walter Rand Transportation Center and PATCO Broadway | River LINE stop `38307` | PATCO stop `8`, Broadway (39.943135, -75.120364) |
+| Lindenwold | Atlantic City stop `71` | PATCO stop `1`, Lindenwold (39.833962, -75.000664) |
+| Trenton Transit Center | Northeast Corridor stop `148` and River LINE stop `38291` | SEPTA Trenton Line. No joint fare |
+| 30th Street, Philadelphia | Atlantic City stop `1` | SEPTA. No other NJ Transit rail line serves this station, and there is no joint fare |
 
 ## Configure
 
