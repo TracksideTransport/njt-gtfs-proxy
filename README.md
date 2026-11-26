@@ -20,7 +20,7 @@ Rail `getGTFS` answers an unauthenticated GET on both `testraildata.njtransit.co
 
 ### Fares in `/rail/gtfs.zip`
 
-The static rail zip gains Fares v2 files and legacy `fare_attributes.txt` / `fare_rules.txt`. Prices come from the njtransit.com trip planner. A 2026 PDF amount is used only when the planner has no price for that pair or that field. Each priced stop is its own fare area. Bus zips are not affected. Details are in [Rail fares](#rail-fares).
+The static rail zip gains Fares v2 files and legacy `fare_attributes.txt` / `fare_rules.txt`. Commuter rail prices come from the njtransit.com trip planner, with a 2026 PDF amount only when the planner has no price for that pair or field. Light rail is a separate flat fare on `njt_light_rail`. Bus zips are not affected. Details are in [Rail fares](#rail-fares) and [Light rail fares](#light-rail-fares).
 
 ### Tracks in `/rail/trip-updates.pb`
 
@@ -66,7 +66,7 @@ A rail route exists only when both `NJT_RAIL_USERNAME` and `NJT_RAIL_PASSWORD` a
 
 ## Rail fares
 
-`GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes (short names HBLR, NLR, RVLN, RVR) are not part of the rail fare network, including when the developer zip marks every route `route_type` 113. Platform stops added for tracks (`{stop_id}:station` and `{stop_id}:track:{label}`) inherit that stop's fare area.
+`GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes (short names HBLR, NLR, RVLN, RVR) are not part of the commuter-rail fare network, including when the developer zip marks every route `route_type` 113. They use the flat fare in [Light rail fares](#light-rail-fares). Platform stops added for tracks (`{stop_id}:station` and `{stop_id}:track:{label}`) inherit that stop's fare area.
 
 The prices are the live njtransit.com trip planner, fetched 26 Nov 2026. The 2026 PDFs in `data/fares/source/` fill a pair or a field the planner does not price. One PDF is titled **Rail Fares 2026** (New York Penn Station, dated 2026-05-01, `published`). The Hoboken, Newark Penn, and Atlantic City PDFs are titled **Rail Proposed Fares 2026** (dated 2026-04-22, `proposed`). A row the planner priced has `source_status` `live`. A row the planner could not price keeps the PDF title, status, date, and SHA-256. Round-trip columns stay from the PDF, because the fare card has no round-trip price.
 
@@ -110,6 +110,30 @@ python3 scripts/refresh_fares.py --gtfs rail_data.zip --planner
 ```
 
 The script needs `pdfminer.six`. It does not call the RailData API.
+
+## Light rail fares
+
+Hudson-Bergen Light Rail, Newark Light Rail, and the River LINE are in the same rail GTFS zip as commuter rail (`route_type` 0 in the public zip, `route_type` 113 in the developer zip). They are not part of `njt_rail`. Each system is one area on the network `njt_light_rail`, and every stop on that system shares the area. A trip anywhere on the system is the flat fare.
+
+The amounts are the charts linked from NJ Transit's adjusted-fares page. The PDF titles are dated 22 Apr 2026. Copies are in `data/fares/source/`, and `data/fares/light_rail.csv` is what the proxy reads. On 2 Dec 2026 the trip planner returned the same one-way prices: Hudson-Bergen `$2.65` / `$1.25`, Newark Light Rail `$1.90` / `$0.85`, River LINE `$1.90` / `$0.85`.
+
+| System | Adult one-way | Reduced one-way | 10-trip | FlexPass | Monthly | Student monthly | Ticket window |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Hudson-Bergen Light Rail | $2.65 | $1.25 | $26.50 | $45.05 | $84.00 | $62.00 | 60 minutes |
+| Newark Light Rail | $1.90 | $0.85 | $19.00 | $32.30 | $71.00 | $52.00 | 60 minutes |
+| River LINE | $1.90 | $0.85 | $19.00 | $32.30 | $64.00 | $49.00 | 75 minutes |
+
+Reduced is the child, senior, and disabled one-way from the chart. Student monthly is the chart's student column. Round trip is not a separate product: the Hudson-Bergen round trip is twice the one-way fare, and the other two charts do not print one.
+
+A one-way ticket includes transfers between vehicles on the same system for that window. The chart does not give a maximum number of vehicle changes. `fare_transfer_rules.txt` allows 3 consecutive transfers inside the leg group, with `duration_limit_type` 1 so the limit runs from the first departure to the later arrival. Newark Light Rail's underground stations (Warren Street, Washington Street, Military Park, and the Penn Station light rail platforms) also offer an adult one-way of `$0.85`. Fares v2 lists that product when both ends are those stops. Fares v1 keeps the full-system adult fare, because a stop has one `zone_id`.
+
+Not encoded, because they are not a light rail leg price in this zip:
+
+- The underground ticket is not valid outbound from Penn Station on weekday evenings from 4pm to 6pm.
+- A rail monthly or weekly pass is accepted on light rail, and some bus passes are accepted on Hudson-Bergen Light Rail. Those passes are bought for another mode.
+- A light rail monthly is also good for one bus zone. This zip has no bus fares.
+- Up to three children age 4 and under ride free. The weekend Family SuperSaver lets two children ages 5–11 ride free with a paying adult.
+- Hudson Go Pass and one-way-with-bus-transfer tickets are sold at light rail machines. They are bus and ferry products.
 
 ## Configure
 

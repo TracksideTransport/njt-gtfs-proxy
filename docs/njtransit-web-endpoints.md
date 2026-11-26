@@ -39,7 +39,19 @@ Loaded on every page that was opened. It is the support widget, not schedule dat
 
 ## What this proxy already uses, and what it does not
 
-The fare refresh calls `TrainSchedule` / `getSchedule` directly. That price is the one written into the GTFS zip. A 2026 PDF amount is used only for a pair or a field the planner does not price. It does not call RailData.
+The commuter-rail fare refresh calls `TrainSchedule` / `getSchedule` directly. That price is the one written into the GTFS zip. A 2026 PDF amount is used only for a pair or a field the planner does not price. It does not call RailData.
+
+`/light-rail-to` calls the same GraphQL endpoint with `getTrainScheduleStationsLightRailForSchedules` and `getTrainSchedulesCurrentLightRail`. That station list is the three system names, and the schedules come back as PDF links, not a fare. Light rail one-way prices show up on `getTripPlannerSchedule` (`routeType` `L`). They match the flat charts: Hudson-Bergen `$2.65` / `$1.25`, Newark Light Rail and River LINE `$1.90` / `$0.85`.
+
+`getLightRailSchedule(line, origin, destination, date)` is the light-rail schedule query in the site bundle. Its fare object is type `LightRailFare`, and the fields the bundle selects are `regularFare`, `reducedFare`, `monthly`, and `tenTrip`. On 2 Dec 2026 those calls returned the chart monthly and 10-trip amounts (Hudson-Bergen `$84.00` / `$26.50`, Newark Light Rail monthly `$71.00`, River LINE `$64.00` / `$19.00`) but `regularFare` and `reducedFare` were null. Newark Light Rail `tenTrip` came back `$0.00`, which is not the chart's `$19.00`. There is no `weekly`, `flexPass`, `schoolMonthly`, or `transferFee` on `LightRailFare`. Station titles come from `getTrainScheduleStationsLightRailForSchedulesLine(title)`.
+
+## No bulk fare matrix
+
+Introspection is disabled. The Nuxt bundles under `/_nuxt/` (52 chunks loaded by the home, fares, train, and light-rail pages) contain 18 GraphQL operations. None of them is a fare table, zone matrix, or spreadsheet. The fare widget only renders the per-trip `Fare` object from `getSchedule` (`regularFare`, `reducedFare`, `tenTrip`, `weekly`, `flexPass`, `monthly`, `schoolMonthly`, `transferFee`, `showMessage`). `Fare` has no `fareTable` or `zone` field.
+
+Apollo's "Did you mean" suggestions reject the guessed names `getFareTable`, `getRailFares`, `getLightRailFares`, `getBusFares`, `getFares`, `getFareMatrix`, `getZoneFares`, `getDocument`, and `getPdf`. The nearest real fields are `getTrainLines`, `getLightRailLines` / `getLightRailLine`, `getBusRoutes`, `getPage`, and `getHomeCards`. `getLightRailLines` returns the three line titles and has no fare or zone field. `getPage(slug: "fares")` is CMS HTML that links to the adjusted-fares page. `getDocument` in the bundles is Apollo's `getDocumentInfo`, not an API field.
+
+The chart PDFs were printed from Excel (`HBLR.xlsx`, `Newark Light Rail.xlsx`, `RiverLine.xlsx` in the PDF metadata). Those workbooks are not published next to the PDFs: the `.xlsx` URLs under `content.njtransit.com` return 404. The pair-by-pair `getSchedule` crawl is still the way to fill commuter-rail pairs the PDFs do not print.
 
 Worth knowing, not wired in:
 
