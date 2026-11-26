@@ -23,7 +23,7 @@ A row the planner priced uses `source_status` `live` and an empty `source_sha256
 | --- | --- |
 | `fares.csv` | One undirected terminal or station pair, with every price column and the source fields |
 | `stations.csv` | Rail `stop_id`, fare area, zone number, and the chart name that matched |
-| `gaps.csv` | Stops with no fare, and station pairs that are not fare rules. The `reason` column separates `not a through fare by design` (off the Atlantic City Rail Line), `meadowlands has no regular fare`, and `no trip` |
+| `gaps.csv` | Stops with no fare, and station pairs that are not fare rules. The `reason` column separates `no single through ticket` (off the Atlantic City Rail Line; the River LINE connects, each leg priced separately), `meadowlands has no regular fare`, and `no trip` |
 | `rail_stops.csv` | Heavy-rail stop directory used to match names. Refresh it with `--gtfs` when stop ids change |
 
 Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-trip, weekly, FlexPass, monthly, and school monthly.
@@ -34,7 +34,7 @@ Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-tr
 
 Each priced commuter-rail stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
 
-Pairs that leave the Atlantic City Rail Line are `not a through fare by design` in `gaps.csv` and are not fare rules. The line has no NJ Transit rail connection. It meets the network only at Philadelphia 30th Street, which SEPTA serves, and no other NJ Transit rail line serves that station. The only other station NJ Transit shares with SEPTA is Trenton Transit Center (Northeast Corridor and the SEPTA Trenton Line), a cross-operator transfer outside this fare system, so there is no joint fare. Meadowlands pairs are `meadowlands has no regular fare`. Pairs with no planner trip are `no trip`.
+Pairs that leave the Atlantic City Rail Line are `no single through ticket` in `gaps.csv` and are not fare rules. The River LINE connects that line to the Northeast Corridor at Pennsauken and Trenton, and each leg is priced separately (Atlantic City fare, River LINE fare, Northeast Corridor fare). Philadelphia 30th Street is an Atlantic City station that SEPTA also serves; no other NJ Transit rail line serves it. Trenton Transit Center is the other station shared with SEPTA, and there is no joint SEPTA fare. Meadowlands pairs are `meadowlands has no regular fare`. Pairs with no planner trip are `no trip`.
 
 ## Light rail
 

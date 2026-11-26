@@ -9,9 +9,12 @@
 //! intermediate trip is not the terminal-zone price. One-way prices do not
 //! vary by time of day, so the zip has no `timeframes.txt`. A transfer inside
 //! the rail network stays one origin-to-destination fare, expressed with
-//! `fare_leg_join_rules.txt`. [`inherit_track_fare_areas`] copies a stop's
-//! area onto `{stop_id}:station` and `{stop_id}:track:{label}` after platform
-//! injection.
+//! `fare_leg_join_rules.txt`. There is no single through ticket off the
+//! Atlantic City Rail Line: the River LINE connects it to the Northeast
+//! Corridor, and each leg keeps its own fare. When the zip has the stops,
+//! `transfers.txt` records the walk at Pennsauken and at Trenton.
+//! [`inherit_track_fare_areas`] copies a stop's area onto `{stop_id}:station`
+//! and `{stop_id}:track:{label}` after platform injection.
 //!
 //! # Examples
 //!
@@ -476,6 +479,7 @@ pub fn augment_rail_gtfs(zip_bytes: &[u8]) -> Result<AugmentedGtfs, FareError> {
     for (name, bytes) in generated.files {
         files.insert(name, bytes);
     }
+    add_line_transfers(&mut files)?;
     Ok(AugmentedGtfs {
         bytes: write_zip(&files)?,
         fares_added: true,
@@ -683,11 +687,12 @@ fn fare_base_stop(stop_id: &str) -> Option<&str> {
 
 /// A fare that leaves the Atlantic City Rail Line.
 ///
-/// The line has no NJ Transit rail connection. Philadelphia 30th Street is its
-/// only meeting point with SEPTA, and no other NJ Transit rail line serves
-/// that station. Trenton Transit Center is the only other shared SEPTA
-/// station, and that transfer is outside this fare system. Exactly one
-/// Atlantic City end means there is no through fare and no joint fare.
+/// There is no single through ticket onto the rest of NJ Transit rail. The
+/// River LINE connects the line at Pennsauken, and each leg is priced on its
+/// own. Philadelphia 30th Street is also a SEPTA station, and no other NJ
+/// Transit rail line serves it. Trenton Transit Center is the other station
+/// shared with SEPTA, and that transfer is outside this fare system. Exactly
+/// one Atlantic City end means the row is not a fare rule.
 ///
 /// # Arguments
 ///
@@ -721,6 +726,165 @@ fn crosses_atlantic_city_line(acrl_areas: &BTreeSet<&str>, fare: &Fare) -> bool 
     origin != destination
 }
 
+/// Atlantic City Rail Line stop at Pennsauken Transit Center.
+const PENNSAUKEN_ACRL_STOP: &str = "43298";
+/// River LINE stop at Pennsauken Transit Center.
+const PENNSAUKEN_RIVER_STOP: &str = "43288";
+/// Northeast Corridor stop at Trenton Transit Center.
+const TRENTON_NEC_STOP: &str = "148";
+/// River LINE stop at Trenton Transit Center.
+const TRENTON_RIVER_STOP: &str = "38291";
+/// Walk between the Pennsauken platforms, about 58 meters.
+const PENNSAUKEN_TRANSFER_SECONDS: &str = "120";
+/// Walk between the Trenton Northeast Corridor and River LINE stations, about 109 meters.
+const TRENTON_TRANSFER_SECONDS: &str = "180";
+
+/// Directed walks added to `transfers.txt` when both stops are in the zip.
+const LINE_TRANSFERS: &[(&str, &str, &str)] = &[
+    (
+        PENNSAUKEN_ACRL_STOP,
+        PENNSAUKEN_RIVER_STOP,
+        PENNSAUKEN_TRANSFER_SECONDS,
+    ),
+    (
+        PENNSAUKEN_RIVER_STOP,
+        PENNSAUKEN_ACRL_STOP,
+        PENNSAUKEN_TRANSFER_SECONDS,
+    ),
+    (
+        TRENTON_NEC_STOP,
+        TRENTON_RIVER_STOP,
+        TRENTON_TRANSFER_SECONDS,
+    ),
+    (
+        TRENTON_RIVER_STOP,
+        TRENTON_NEC_STOP,
+        TRENTON_TRANSFER_SECONDS,
+    ),
+];
+
+/// Adds the Pennsauken and Trenton walks when the zip does not already list them.
+///
+/// Pennsauken is the change between the Atlantic City Rail Line and the River
+/// LINE. Trenton is the change between the River LINE and the Northeast
+/// Corridor. Each row is `transfer_type` 2, so a journey must allow the walk.
+/// A direction that is already present is left as published. Stops that are
+/// absent are skipped, and a zip with neither pair gains no `transfers.txt`.
+///
+/// # Arguments
+///
+/// * `files` — Zip entries. `stops.txt` must be present.
+///
+/// # Returns
+///
+/// Nothing. `files` contains `transfers.txt` when at least one walk applies.
+///
+/// # Errors
+///
+/// Returns [`FareError`] when `stops.txt` or an existing `transfers.txt` is
+/// not CSV, or when a required column is missing.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// [`augment_rail_gtfs`] writes these rows for a rail zip that has the stops.
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn add_line_transfers(files: &mut BTreeMap<String, Vec<u8>>) -> Result<(), FareError> {
+    let stops = files
+        .get("stops.txt")
+        .map(Vec::as_slice)
+        .ok_or_else(|| FareError::new("stops.txt disappeared while reading the zip"))?;
+    let (stop_header, stop_rows) = read_table(stops, "stops.txt")?;
+    let id_column = stop_header
+        .iter()
+        .position(|name| name == "stop_id")
+        .ok_or_else(|| FareError::new("stops.txt has no stop_id column"))?;
+    let present: BTreeSet<&str> = stop_rows
+        .iter()
+        .filter_map(|row| row.get(id_column).map(String::as_str))
+        .collect();
+    let needed: Vec<(&str, &str, &str)> = LINE_TRANSFERS
+        .iter()
+        .copied()
+        .filter(|(from, to, _)| present.contains(from) && present.contains(to))
+        .collect();
+    if needed.is_empty() {
+        return Ok(());
+    }
+
+    let (mut header, mut rows) = if let Some(bytes) = files.get("transfers.txt") {
+        read_table(bytes, "transfers.txt")?
+    } else {
+        (
+            vec![
+                "from_stop_id".to_string(),
+                "to_stop_id".to_string(),
+                "transfer_type".to_string(),
+                "min_transfer_time".to_string(),
+            ],
+            Vec::new(),
+        )
+    };
+    for name in [
+        "from_stop_id",
+        "to_stop_id",
+        "transfer_type",
+        "min_transfer_time",
+    ] {
+        if !header.iter().any(|column| column == name) {
+            header.push(name.to_string());
+        }
+    }
+    for row in &mut rows {
+        row.resize(header.len(), String::new());
+    }
+    let from_column = header
+        .iter()
+        .position(|name| name == "from_stop_id")
+        .ok_or_else(|| FareError::new("transfers.txt has no from_stop_id column"))?;
+    let to_column = header
+        .iter()
+        .position(|name| name == "to_stop_id")
+        .ok_or_else(|| FareError::new("transfers.txt has no to_stop_id column"))?;
+    let type_column = header
+        .iter()
+        .position(|name| name == "transfer_type")
+        .ok_or_else(|| FareError::new("transfers.txt has no transfer_type column"))?;
+    let time_column = header
+        .iter()
+        .position(|name| name == "min_transfer_time")
+        .ok_or_else(|| FareError::new("transfers.txt has no min_transfer_time column"))?;
+    let published: BTreeSet<(String, String)> = rows
+        .iter()
+        .map(|row| (row[from_column].clone(), row[to_column].clone()))
+        .collect();
+    for (from, to, seconds) in needed {
+        if published.contains(&(from.to_string(), to.to_string())) {
+            continue;
+        }
+        let mut row = vec![String::new(); header.len()];
+        row[from_column] = from.to_string();
+        row[to_column] = to.to_string();
+        row[type_column] = "2".to_string();
+        row[time_column] = seconds.to_string();
+        rows.push(row);
+    }
+    let header_refs: Vec<&str> = header.iter().map(String::as_str).collect();
+    files.insert(
+        "transfers.txt".to_string(),
+        write_records(&header_refs, rows)?,
+    );
+    Ok(())
+}
+
 /// Generated fare files plus the rewritten stop table.
 struct Generated {
     /// `stops.txt` with priced `zone_id` values.
@@ -732,9 +896,10 @@ struct Generated {
 /// Builds fare files for the stops and routes in this zip.
 ///
 /// A pair with one end on the Atlantic City Rail Line and the other end off
-/// that line is omitted. The line does not connect to other NJ Transit rail,
-/// and a price quoted through Philadelphia 30th Street or Trenton is not a
-/// joint fare.
+/// that line is omitted. There is no single through ticket: the River LINE
+/// connects the line at Pennsauken, and each leg keeps its own fare. A price
+/// quoted through Philadelphia 30th Street, or as a SEPTA transfer at
+/// Trenton, is not a joint fare.
 ///
 /// # Arguments
 ///
@@ -1903,7 +2068,7 @@ mod tests {
         for fare in &catalog().fares {
             assert!(
                 !crosses_atlantic_city_line(&acrl_areas, fare),
-                "{} to {} is not a through fare",
+                "{} to {} has no single through ticket",
                 fare.origin_name,
                 fare.destination_name
             );
@@ -1930,6 +2095,48 @@ mod tests {
         assert!(!attributes.contains("ow_adult_njt_stop_1_njt_stop_105,"));
         assert!(!attributes.contains("ow_adult_njt_stop_1_njt_stop_148,"));
         assert!(!attributes.contains("ow_adult_njt_stop_10_njt_stop_105,"));
+    }
+
+    #[test]
+    fn pennsauken_and_trenton_walks_are_added_when_the_stops_exist() {
+        let stops = "stop_id,stop_name,zone_id\n\
+            43298,PENNSAUKEN TRANSIT CENTER,1\n\
+            43288,PENNSAUKEN TRANSIT CENTER LIGHT RAIL STA,1\n\
+            148,TRENTON TRANSIT CENTER,1\n\
+            38291,TRENTON TRANSIT CENTER LIGHT RAIL STATION,1\n\
+            105,NEW YORK PENN STATION,329\n";
+        let mut files = BTreeMap::new();
+        files.insert("stops.txt".to_string(), stops.as_bytes().to_vec());
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        let transfers = read_named(&augmented.bytes, "transfers.txt");
+        assert!(transfers.contains("43298,43288,2,120"));
+        assert!(transfers.contains("43288,43298,2,120"));
+        assert!(transfers.contains("148,38291,2,180"));
+        assert!(transfers.contains("38291,148,2,180"));
+        let rules = read_named(&augmented.bytes, "fare_rules.txt");
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
+        assert!(!rules.contains("njt_stop_43298"));
+
+        let mut partial = BTreeMap::new();
+        partial.insert(
+            "stops.txt".to_string(),
+            b"stop_id,stop_name,zone_id\n148,TRENTON TRANSIT CENTER,1\n105,NEW YORK PENN STATION,329\n".to_vec(),
+        );
+        let partial = augment_rail_gtfs(&write_zip(&partial).expect("zip")).expect("augment");
+        let mut archive = ZipArchive::new(Cursor::new(partial.bytes)).expect("zip");
+        assert!(archive.by_name("transfers.txt").is_err());
+
+        let mut kept = BTreeMap::new();
+        kept.insert("stops.txt".to_string(), stops.as_bytes().to_vec());
+        kept.insert(
+            "transfers.txt".to_string(),
+            b"from_stop_id,to_stop_id,transfer_type,min_transfer_time\n43298,43288,0,60\n".to_vec(),
+        );
+        let kept = augment_rail_gtfs(&write_zip(&kept).expect("zip")).expect("augment");
+        let transfers = read_named(&kept.bytes, "transfers.txt");
+        assert!(transfers.contains("43298,43288,0,60"));
+        assert!(!transfers.contains("43298,43288,2,120"));
+        assert!(transfers.contains("43288,43298,2,120"));
     }
 
     #[test]
