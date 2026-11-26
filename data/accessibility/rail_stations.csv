@@ -1,0 +1,168 @@
+stop_code,title,station_code,accessible
+17,Ramsey Route 17 Station,754,1
+23,Wayne-Route 23 Transit Center Rail Station,840,1
+AB,Absecon Station,196,1
+AC,Atlantic City Rail Terminal,198,1
+AH,Allenhurst Station,274,0
+AM,Aberdeen Matawan Station,250,1
+AN,Annandale Station,370,0
+AO,Atco Station,190,1
+AP,Asbury Park Station,276,1
+AS,Anderson Street Station,424,0
+AV,Avenel Station,220,0
+AZ,Allendale Station,750,0
+BB,Bradley Beach Station,278,0
+BF,Broadway Station Fair Lawn,730,0
+BH,Bay Head Station,288,0
+BI,Basking Ridge Station,960,0
+BK,Bound Brook Station,344,0
+BM,Bloomfield Rail Station,616,0
+BN,Boonton Station,856,1
+BS,Belmar Station,280,0
+BU,Brick Church Station,516,0
+BV,Bernardsville Station,962,0
+BW,Bridgewater Station,350,0
+BY,Berkeley Heights Station,950,0
+CB,Campbell Hall Station,794,1
+CH,South Amboy Station,240,1
+CM,Chatham Station,548,0
+CN,Convent Station,552,0
+CW,Salisbury Mills Cornwall Station,793,1
+CY,Cherry Hill Station,184,1
+DL,Delawanna Station,710,0
+DN,Dunellen Station,338,0
+DO,Dover Station,566,1
+DV,Denville Station,563,1
+ED,Edison Station,140,1
+EH,Egg Harbor City Station,194,1
+EL,Elberon Station,270,1
+EN,Emerson Station,438,0
+EO,East Orange Station,514,1
+EX,Essex Street Station (PVL),422,1
+EZ,Elizabeth Station,104,1
+FA,Little Falls Station,838,0
+FH,Far Hills Station,966,0
+FW,Fanwood Station,320,0
+FZ,Radburn Station,732,0
+GD,Garfield Station,718,1
+GG,Glen Ridge Station,618,0
+GI,Gillette Station,952,0
+GK,Glen Rock Boro Hall Station,739,1
+GL,Gladstone Station,970,1
+GO,Millington Station,956,0
+GW,Garwood Station,314,0
+HB,Hoboken Terminal,999,1
+HD,Hillsdale Station,442,0
+HG,High Bridge Station,374,0
+HI,Highland Avenue Station,520,0
+HL,Hamilton Station,176,1
+HN,Hammonton Station,192,1
+HP,Lake Hopatcong Station,876,0
+HQ,Hackettstown Station,882,1
+HS,Montclair Heights Station,832,1
+HV,Mount Arlington Station,874,1
+HW,Hawthorne Station,736,0
+HZ,Hazlet Station,252,1
+IF,Clifton Station,722,0
+JA,Jersey Avenue Station (Northeast Corridor),146,0
+LA,Spring Lake Station,282,0
+LB,Long Branch Station,268,1
+LI,Linden Station,110,1
+LN,Lyndhurst Station,708,1
+LP,Lincoln Park Station,848,0
+LS,Little Silver Station,264,0
+LW,Lindenwold Station,188,1
+LY,Lyons Station,958,1
+MA,Madison Station,550,1
+MB,Millburn Station,534,0
+MC,Bay Street Station,624,1
+MD,Middletown New York Station,795,1
+MED,MetLife Stadium,410,1
+MH,Murray Hill Station,948,0
+MI,Middletown New Jersey Station,254,1
+MK,Monmouth Park Station,266,0
+ML,Mountain Lakes Station,858,0
+MP,Metropark Station,126,1
+MR,Morristown Station,558,1
+MS,Mountain Avenue Station,830,0
+MT,Mountain Station,522,0
+MU,Metuchen Station,134,1
+MV,Mountain View Station,842,1
+MW,Maplewood Station,532,0
+MX,Morris Plains Station,560,0
+MZ,Mahwah Station,756,0
+NA,EWR Newark Airport Station,101,1
+NB,New Brunswick Station,144,1
+ND,Newark Broad Street Station,508,1
+NE,Netherwood Station,326,0
+NH,New Bridge Landing Station,430,0
+NN,Nanuet Station,457,1
+NP,Newark Penn Station,100,1
+NT,Netcong Station,878,0
+NV,New Providence Station,942,0
+NY,New York Penn Station,0,1
+NZ,North Elizabeth Station,102,1
+OD,Oradell Station,436,0
+OG,Orange Station,518,0
+OL,Mount Olive Station,880,1
+ON,Lebanon Station,368,0
+OR,North Branch Station,360,0
+OS,Otisville Station,796,0
+PC,Peapack Station,968,0
+PE,Perth Amboy Station,238,0
+PF,Plainfield Station,334,1
+PH,30th Street Station Philadelphia,182,1
+PJ,Princeton Junction Station,164,1
+PL,Plauderville Station,724,1
+PN,Pennsauken Transit Center Station,183,1
+PO,Port Jervis Station,797,0
+PP,Point Pleasant Beach Station,286,1
+PQ,Pearl River Station,455,0
+PR,Princeton Station,172,1
+PS,Passaic Station,716,0
+PV,Park Ridge Station,446,1
+RA,Raritan Station,356,0
+RB,Red Bank Station,260,1
+RF,Rutherford Station,712,0
+RG,River Edge Station,432,0
+RH,Rahway Station,116,1
+RL,Roselle Park Station,306,0
+RM,Harriman Station,792,1
+RN,Paterson Station,728,1
+RS,Glen Rock Main Line Station,738,0
+RT,Short Hills Station,536,0
+RW,Ridgewood Station,742,0
+RY,Ramsey Main Street Station,752,1
+SE,Secaucus Junction Upper Level,,1
+SF,Suffern Station,758,0
+SG,Stirling Station,954,0
+SM,Somerville Station,354,1
+SO,South Orange Station,524,1
+SQ,Manasquan Station,284,0
+ST,Summit Station,542,1
+SV,Spring Valley Station,459,1
+TB,Mount Tabor Station,562,0
+TC,Tuxedo Station,791,0
+TE,Teterboro Station,418,0
+TO,Towaco Station,850,1
+TR,Trenton Transit Center,180,1
+TS,Secaucus Junction Lower Level,,1
+UF,Ho-Ho-Kus Station,746,0
+UM,Upper Montclair Station,824,0
+US,Union Station,304,1
+UV,Montclair State University Station,834,1
+WA,Walnut Street Station,820,0
+WB,Woodbridge Station,226,1
+WF,Westfield Station,316,1
+WG,Watchung Avenue Station,822,0
+WH,White House Station,364,0
+WK,Waldwick Station,748,0
+WL,Woodcliff Lake Station,444,0
+WM,Wesmont Station,714,1
+WR,Wood Ridge Station,412,0
+WT,Watsessing Avenue Station,614,0
+WW,Westwood Station,440,1
+XC,Cranford Station,310,1
+XG,Sloatsburg Station,790,0
+XU,Meadowlands Rail Station,410,1
+ZM,Montvale Station,448,1

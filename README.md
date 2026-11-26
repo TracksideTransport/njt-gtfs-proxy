@@ -93,6 +93,12 @@ The one-way ticket media is the NJ TRANSIT app or vending machine (same price). 
 
 `fare_leg_join_rules.txt` joins any two `njt_rail` legs that meet at the same stop. A New York–Secaucus–Trenton ride is then priced as New York to Trenton when that pair is in the table. There is no separate transfer charge in these charts, so there is no `fare_transfer_rules.txt`.
 
+### Wheelchair boarding
+
+`stops.wheelchair_boarding` comes from NJ Transit's public station list, not from RailData. `getTrainScheduleStationsRailForDV` returns `pentaStationID`, which is the developer rail GTFS `stop_code`, and `accessible`. The checked-in file is `data/accessibility/rail_stations.csv` (167 stop codes: 82 accessible, 85 not). Refresh it with `python3 scripts/refresh_accessibility.py`.
+
+An accessible station is `1`. A station the list marks not accessible is `2`. Stops whose code is not in the list, including light rail stops that use a numeric code, are left as the upstream feed sent them. Platform stops added for tracks copy the column, so `{stop_id}:station` and `{stop_id}:track:{label}` have the same value as the station.
+
 ### Coverage and gaps
 
 Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.njtransit.com/rail_data.zip`, stops dated 2026-11-19) that the charts or the trip planner price. Secaucus upper and lower level share one area.

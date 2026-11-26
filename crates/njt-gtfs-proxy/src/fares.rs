@@ -34,6 +34,9 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
 /// Checked-in fare rows.
 const FARES_CSV: &str = include_str!("../../../data/fares/fares.csv");
+
+/// Rail station accessibility, keyed by GTFS `stop_code`.
+const ACCESSIBILITY_CSV: &str = include_str!("../../../data/accessibility/rail_stations.csv");
 /// Checked-in stop-to-area rows.
 const STATIONS_CSV: &str = include_str!("../../../data/fares/stations.csv");
 
@@ -718,7 +721,7 @@ fn generate(
     trips_txt: Option<&[u8]>,
     stop_times_txt: Option<&[u8]>,
 ) -> Result<Generated, FareError> {
-    let (stops_header, stop_rows) = read_table(stops_txt, "stops.txt")?;
+    let (mut stops_header, stop_rows) = read_table(stops_txt, "stops.txt")?;
     let zone_column = stops_header
         .iter()
         .position(|name| name == "zone_id")
@@ -889,6 +892,7 @@ fn generate(
             )?,
         );
     }
+    apply_wheelchair_boarding(&mut stops_header, &mut rewritten);
 
     Ok(Generated {
         stops: write_records(
@@ -1586,6 +1590,91 @@ fn append_records(mut bytes: Vec<u8>, rows: &[Vec<String>]) -> Result<Vec<u8>, F
     Ok(bytes)
 }
 
+/// Sets `wheelchair_boarding` from the checked-in station list.
+///
+/// `accessible` 1 becomes GTFS `1`. Anything else becomes `2`. Stops whose
+/// `stop_code` is not in the list are left unchanged. Track injection copies
+/// this column onto `{stop_id}:station` and `{stop_id}:track:{label}`.
+///
+/// # Arguments
+///
+/// * `header` — `stops.txt` columns. `wheelchair_boarding` is added when missing.
+/// * `rows` — Stop rows aligned with `header`.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// See [`augment_rail_gtfs`].
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn apply_wheelchair_boarding(header: &mut Vec<String>, rows: &mut [Vec<String>]) {
+    let Some(code_column) = header.iter().position(|name| name == "stop_code") else {
+        return;
+    };
+    let boarding_column = match header.iter().position(|name| name == "wheelchair_boarding") {
+        Some(column) => column,
+        None => {
+            header.push("wheelchair_boarding".to_string());
+            for row in rows.iter_mut() {
+                row.push(String::new());
+            }
+            header.len() - 1
+        }
+    };
+    let codes = wheelchair_codes();
+    for row in rows.iter_mut() {
+        let Some(code) = row.get(code_column).map(|code| code.trim()) else {
+            continue;
+        };
+        let Some(value) = codes.get(code) else {
+            continue;
+        };
+        if row.len() <= boarding_column {
+            row.resize(boarding_column + 1, String::new());
+        }
+        row[boarding_column].clone_from(value);
+    }
+}
+
+/// `stop_code` to GTFS `wheelchair_boarding` (`1` or `2`).
+///
+/// # Returns
+///
+/// The checked-in map. A code that is not accessible is `"2"`.
+///
+/// # Panics
+///
+/// This function does not panic. A broken checked-in CSV skips that row.
+///
+/// # Examples
+///
+/// See [`apply_wheelchair_boarding`].
+fn wheelchair_codes() -> &'static HashMap<String, String> {
+    static CODES: OnceLock<HashMap<String, String>> = OnceLock::new();
+    CODES.get_or_init(|| {
+        let mut reader = csv::Reader::from_reader(ACCESSIBILITY_CSV.as_bytes());
+        let mut codes = HashMap::new();
+        for record in reader.records().flatten() {
+            let Some(code) = record.get(0) else {
+                continue;
+            };
+            let accessible = record.get(3).is_some_and(|value| value == "1");
+            codes.insert(
+                code.to_string(),
+                if accessible { "1" } else { "2" }.to_string(),
+            );
+        }
+        codes
+    })
+}
+
 /// Encodes rows as CSV.
 ///
 /// # Arguments
@@ -1859,5 +1948,57 @@ mod tests {
         let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
         assert!(leg.contains("njt_nlr,njt_light_rail,njt_nlr_underground,njt_nlr_underground,ow_adult_njt_nlr_underground"));
         assert!(leg.contains("ow_adult_njt_stop_105_njt_stop_148"));
+    }
+
+    #[test]
+    fn wheelchair_boarding_follows_stop_code_and_track_children_copy_it() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            "stops.txt".to_string(),
+            b"stop_id,stop_code,stop_name,stop_lat,stop_lon,zone_id,location_type,parent_station\n105,NY,NEW YORK PENN STATION,40.75,-73.99,329,,\n999,MK,MONMOUTH PARK,40.2,-74.0,1,,\n".to_vec(),
+        );
+        files.insert(
+            "routes.txt".to_string(),
+            b"route_id,route_short_name,route_type\n10,NEC,2\n".to_vec(),
+        );
+        files.insert(
+            "trips.txt".to_string(),
+            b"trip_id,route_id,service_id,trip_short_name\n1,10,1,1\n".to_vec(),
+        );
+        files.insert(
+            "stop_times.txt".to_string(),
+            b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\n1,10:00:00,10:00:00,105,1\n".to_vec(),
+        );
+        files.insert(
+            "calendar_dates.txt".to_string(),
+            b"service_id,date,exception_type\n1,20261202,1\n".to_vec(),
+        );
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        let ny = crate::tracks::station("NY").expect("NY");
+        let injection = crate::tracks::inject_platforms(&augmented.bytes, &[ny]).expect("tracks");
+        let zip = injection.zip.expect("platform stops");
+        let stops = read_named(&zip, "stops.txt");
+        let mut lines = stops.lines();
+        let header: Vec<&str> = lines.next().expect("header").split(',').collect();
+        let column = header
+            .iter()
+            .position(|name| *name == "wheelchair_boarding")
+            .expect("column");
+        let boarding = |stop_id: &str| -> String {
+            stops
+                .lines()
+                .find(|line| {
+                    line.starts_with(stop_id) && line.as_bytes().get(stop_id.len()) == Some(&b',')
+                })
+                .expect(stop_id)
+                .split(',')
+                .nth(column)
+                .unwrap_or("")
+                .to_string()
+        };
+        assert_eq!(boarding("105"), "1");
+        assert_eq!(boarding("999"), "2");
+        assert_eq!(boarding("105:track:1"), "1");
+        assert_eq!(boarding("105:station"), "1");
     }
 }
