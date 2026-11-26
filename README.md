@@ -20,7 +20,7 @@ Rail `getGTFS` answers an unauthenticated GET on both `testraildata.njtransit.co
 
 ### Fares in `/rail/gtfs.zip`
 
-The static rail zip gains Fares v2 files and legacy `fare_attributes.txt` / `fare_rules.txt` from the 2026 fare tables, with same-line pairs the tables skip filled from the njtransit.com trip planner. Each priced stop is its own fare area. The PDF amount is kept when the site disagrees. Bus zips are not affected. Details are in [Rail fares](#rail-fares).
+The static rail zip gains Fares v2 files and legacy `fare_attributes.txt` / `fare_rules.txt`. Prices come from the njtransit.com trip planner. A 2026 PDF amount is used only when the planner has no price for that pair or that field. Each priced stop is its own fare area. Bus zips are not affected. Details are in [Rail fares](#rail-fares).
 
 ### Tracks in `/rail/trip-updates.pb`
 
@@ -68,7 +68,7 @@ A rail route exists only when both `NJT_RAIL_USERNAME` and `NJT_RAIL_PASSWORD` a
 
 `GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes (short names HBLR, NLR, RVLN, RVR) are not part of the rail fare network, including when the developer zip marks every route `route_type` 113. Platform stops added for tracks (`{stop_id}:station` and `{stop_id}:track:{label}`) inherit that stop's fare area.
 
-The prices are NJ Transit's 2026 rail fare tables in `data/fares/source/`. One PDF is titled **Rail Fares 2026** (New York Penn Station, dated 2026-05-01). The Hoboken, Newark Penn, and Atlantic City PDFs are titled **Rail Proposed Fares 2026** (dated 2026-04-22). Each fare row records that title, status, date, and SHA-256. The adjusted-fares page links all four as the charts effective July 1, 2026.
+The prices are the live njtransit.com trip planner, fetched 26 Nov 2026. The 2026 PDFs in `data/fares/source/` fill a pair or a field the planner does not price. One PDF is titled **Rail Fares 2026** (New York Penn Station, dated 2026-05-01, `published`). The Hoboken, Newark Penn, and Atlantic City PDFs are titled **Rail Proposed Fares 2026** (dated 2026-04-22, `proposed`). A row the planner priced has `source_status` `live`. A row the planner could not price keeps the PDF title, status, date, and SHA-256. Round-trip columns stay from the PDF, because the fare card has no round-trip price.
 
 Fares are fixed. There is no peak or off-peak price, so the feed has no `timeframes.txt`.
 
@@ -97,7 +97,7 @@ The one-way ticket media is the NJ TRANSIT app or vending machine (same price). 
 
 Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.njtransit.com/rail_data.zip`, stops dated 2026-11-19) that the charts or the trip planner price. Secaucus upper and lower level share one area.
 
-Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, are filled from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. Where a PDF row and the site disagree, the PDF row is kept. `data/fares/planner_mismatches.csv` lists the differences. The published New York one-way prices match the site except Nanuet, Pearl River, and Spring Valley (chart $19.75, site $11.55). The three Proposed charts do not match the site's one-way prices. A `$0.00` pass on the site is stored as blank, not as a free fare.
+Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, come from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. When the planner and a PDF disagree, the planner amount is the one in the feed. `data/fares/planner_mismatches.csv` is the audit of those differences and is not what gets published. A `$0.00` pass on the site is treated as unsold: that field keeps the PDF amount when the chart has one, and is otherwise blank.
 
 The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Stations beyond Suffern are not on the New York chart (it points at Metro-North tables). They do not share a trip with New York Penn, so there is no New York fare for them. Pairs they do share, including Hoboken and Newark Penn, come from the trip planner.
 

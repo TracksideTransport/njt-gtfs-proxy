@@ -39,7 +39,7 @@ Loaded on every page that was opened. It is the support widget, not schedule dat
 
 ## What this proxy already uses, and what it does not
 
-The fare refresh calls `TrainSchedule` / `getSchedule` directly and keeps the official PDF amount when the two disagree. It does not call RailData.
+The fare refresh calls `TrainSchedule` / `getSchedule` directly. That price is the one written into the GTFS zip. A 2026 PDF amount is used only for a pair or a field the planner does not price. It does not call RailData.
 
 Worth knowing, not wired in:
 
