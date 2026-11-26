@@ -3,6 +3,9 @@
 # each platform from this file, natively or under QEMU. No arch-specific packages.
 
 FROM rust:1-bookworm AS builder
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates

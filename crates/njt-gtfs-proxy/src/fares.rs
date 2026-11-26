@@ -155,7 +155,8 @@ struct Fare {
     monthly: String,
     /// School monthly amount.
     school_monthly: String,
-    /// `published`, `proposed`, or `live`.
+    /// `published`, `proposed`, or `live`. Read by tests; the GTFS files use the amounts.
+    #[allow(dead_code)]
     source_status: String,
 }
 
@@ -613,11 +614,11 @@ pub fn inherit_track_fare_areas(zip_bytes: &[u8]) -> Result<Vec<u8>, FareError> 
                 changed = true;
             }
         }
-        if !area_by_stop.contains_key(&stop_id) {
+        if let std::collections::hash_map::Entry::Vacant(entry) = area_by_stop.entry(stop_id) {
             let mut area_row = vec![String::new(); areas_header.len().max(area_id_column + 1)];
-            area_row[area_stop_column].clone_from(&stop_id);
+            area_row[area_stop_column].clone_from(entry.key());
             area_row[area_id_column].clone_from(&area_id);
-            area_by_stop.insert(stop_id, area_id);
+            entry.insert(area_id);
             area_rows.push(area_row);
             changed = true;
         }
@@ -1399,9 +1400,7 @@ fn rail_route_rows(routes_txt: Option<&[u8]>) -> Result<Vec<Vec<String>>, FareEr
         .iter()
         .position(|name| name == "route_type")
         .ok_or_else(|| FareError::new("routes.txt has no route_type column"))?;
-    let short_column = header
-        .iter()
-        .position(|name| name == "route_short_name");
+    let short_column = header.iter().position(|name| name == "route_short_name");
     let mut linked = Vec::new();
     for row in rows {
         let route_type = row.get(type_column).map(String::as_str).unwrap_or("");
@@ -1574,7 +1573,8 @@ mod tests {
         );
         files.insert(
             "routes.txt".to_string(),
-            b"route_id,route_short_name,route_type\n10,NEC,2\n4,HBLR,0\n11,NEC,113\n17,RVLN,113\n".to_vec(),
+            b"route_id,route_short_name,route_type\n10,NEC,2\n4,HBLR,0\n11,NEC,113\n17,RVLN,113\n"
+                .to_vec(),
         );
         write_zip(&files).expect("sample zip")
     }
@@ -1604,12 +1604,8 @@ mod tests {
         assert!(stops.contains("63,HOBOKEN,njt_stop_63"));
         assert!(stops.contains("6900,MILITARY PARK LIGHT RAIL STATION,336"));
         let rules = read_named(&augmented.bytes, "fare_rules.txt");
-        assert!(rules.contains(
-            "ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"
-        ));
-        assert!(rules.contains(
-            "ow_adult_njt_stop_105_njt_stop_148,njt_stop_148,njt_stop_105"
-        ));
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_148,njt_stop_105"));
         assert!(!rules.contains("njt_stop_105,njt_stop_63"));
         let attributes = read_named(&augmented.bytes, "fare_attributes.txt");
         assert!(attributes.contains("ow_adult_njt_stop_105_njt_stop_148,20.35,USD,1,"));
@@ -1637,8 +1633,7 @@ mod tests {
             .fares
             .iter()
             .find(|fare| {
-                fare.origin_area_id == "njt_stop_105"
-                    && fare.destination_area_id == "njt_stop_144"
+                fare.origin_area_id == "njt_stop_105" && fare.destination_area_id == "njt_stop_144"
             })
             .expect("suffern");
         assert_eq!(suffern.adult_ow, "14.80");

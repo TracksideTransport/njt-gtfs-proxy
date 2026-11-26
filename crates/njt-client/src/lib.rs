@@ -87,7 +87,7 @@ pub use bytes::Bytes;
 pub use client::{Client, ClientBuilder};
 pub use clock::{eastern_date, next_midnight_eastern, Clock, ManualClock, SystemClock};
 pub use error::{safe_error_text, Error};
-pub use payload::{classify, classify_error_message, parse_token_body};
+pub use payload::{accept_board, classify, classify_error_message, parse_token_body};
 pub use secret::{constant_time_eq, Secret};
 pub use store::TokenStore;
 pub use token::{TokenManager, TokenManagerBuilder, TokenPolicy, DAILY_MINT_CAP};

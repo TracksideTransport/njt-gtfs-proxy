@@ -454,12 +454,73 @@ async fn form_fields_are_username_password_and_token() {
     assert!(auth_body.contains("placeholder-user"));
     assert!(auth_body.contains("name=\"password\""));
     assert!(auth_body.contains("placeholder-password"));
+    let get = requests
+        .iter()
+        .find(|request| request.url.path().ends_with("getGTFS") && request.method.as_str() == "GET")
+        .expect("unauthenticated get");
+    assert!(get.body.is_empty());
     let data = requests
         .iter()
-        .find(|request| request.url.path().ends_with("getGTFS"))
-        .expect("data");
+        .find(|request| {
+            request.url.path().ends_with("getGTFS") && request.method.as_str() == "POST"
+        })
+        .expect("token post");
     let data_body = String::from_utf8_lossy(&data.body);
     assert!(data_body.contains("name=\"token\""));
     assert!(data_body.contains("fake-token"));
     assert!(!data_body.contains("placeholder-password"));
+}
+
+#[tokio::test]
+async fn rail_static_get_skips_the_token_when_the_zip_is_served() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/GTFSRT/getGTFS"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"PK\x03\x04from-get".as_slice()))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let rail = client(
+        ApiKind::Rail,
+        &server.uri(),
+        TokenStore::memory(),
+        clock(),
+        TokenPolicy::default(),
+    );
+    let zip = rail.fetch(Feed::Static).await.expect("zip");
+    assert_eq!(zip.as_ref(), b"PK\x03\x04from-get");
+    server.verify().await;
+    assert_eq!(count(&server, "getToken").await, 0);
+}
+
+#[tokio::test]
+async fn train_data_board_uses_its_own_token_and_not_is_valid_token() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/TrainData/getToken"))
+        .respond_with(token_body("board-token"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/api/TrainData/getTrainSchedule19Rec"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "STATION_2CHAR": "NY",
+            "ITEMS": []
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let rail = client(
+        ApiKind::TrainData,
+        &server.uri(),
+        TokenStore::memory(),
+        clock(),
+        TokenPolicy::default(),
+    );
+    let body = rail.fetch_station_board("ny").await.expect("board");
+    assert!(body.windows(5).any(|window| window == b"ITEMS"));
+    server.verify().await;
+    assert_eq!(count(&server, "isValidToken").await, 0);
+    assert_eq!(count(&server, "/api/GTFSRT/getToken").await, 0);
 }

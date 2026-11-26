@@ -3,6 +3,7 @@
 //! `/healthz` is unauthenticated. Feed routes require
 //! [`ACCESS_KEY_HEADER`] when an access key is configured.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::body::Body;
@@ -16,6 +17,7 @@ use serde::Serialize;
 
 use crate::cache::FeedCache;
 use crate::fares::{self, FARE_HEADER, FARE_HEADER_ADDED, FARE_HEADER_PASSTHROUGH};
+use crate::tracks::TrackHub;
 
 /// Header clients must send when `NJT_PROXY_ACCESS_KEY` is set.
 ///
@@ -33,6 +35,8 @@ pub(crate) struct AppState {
     pub(crate) cache: FeedCache,
     /// Expected access key. `None` leaves feed routes open.
     pub(crate) access_key: Option<Secret>,
+    /// Platform injection and trip-update enrichment.
+    pub(crate) tracks: Arc<TrackHub>,
 }
 
 /// Liveness body.
@@ -44,6 +48,10 @@ struct HealthBody {
     rail: bool,
     /// Whether `/bus/*` is enabled.
     bus: bool,
+    /// Whether rail platform stops and headsign tracks are published.
+    tracks: bool,
+    /// Whether TrainData station boards are polled.
+    track_boards: bool,
 }
 
 /// Builds the public router.
@@ -98,7 +106,7 @@ pub(crate) fn router_from_state(state: AppState) -> Router {
 ///
 /// # Returns
 ///
-/// HTTP 200 and a JSON object `{ok, rail, bus}`.
+/// HTTP 200 and a JSON object `{ok, rail, bus, tracks, track_boards}`.
 ///
 /// # Errors
 ///
@@ -123,6 +131,8 @@ async fn healthz(State(state): State<AppState>) -> Json<HealthBody> {
         ok: true,
         rail: state.rail.is_some(),
         bus: state.bus.is_some(),
+        tracks: state.tracks.enabled(),
+        track_boards: state.tracks.boards_enabled(),
     })
 }
 
@@ -434,20 +444,26 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
             None,
         );
     };
+    let tracks = Arc::clone(&state.tracks);
     let fetched = state
         .cache
         .get_or_fetch(api, feed, || {
             let client = client.clone();
+            let tracks = Arc::clone(&tracks);
             async move {
-                let body = client.fetch(feed).await?;
+                let raw = client.fetch(feed).await?;
                 if api == ApiKind::Rail && feed == Feed::Static {
-                    Ok(augment_static(body))
+                    Ok(finish_rail_static(&tracks, raw))
                 } else {
-                    Ok(body)
+                    Ok(raw)
                 }
             }
         })
         .await;
+    let fetched = match fetched {
+        Ok((body, hit)) => Ok((prepare_trips(state, api, feed, body).await, hit)),
+        Err(err) => Err(err),
+    };
     match fetched {
         Ok((body, hit)) => feed_response(feed, body, hit, ttl_of(state, feed), api),
         Err(err) => {
@@ -455,6 +471,70 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
             error_response(&err)
         }
     }
+}
+
+/// Loads the static index when a trip update needs it, then applies track fields.
+///
+/// Headsign parsing does not call TrainData. The static zip is fetched through
+/// the same cache as `/rail/gtfs.zip`, and rail `getGTFS` is tried with GET
+/// before a token POST. Bytes that are not a trip-update feed are returned as-is.
+///
+/// # Arguments
+///
+/// * `state` — Router state.
+/// * `api` — Rail or bus.
+/// * `feed` — Which file was downloaded.
+/// * `body` — Cached or fresh bytes.
+///
+/// # Returns
+///
+/// Trip updates with platform assignments when enrichment is on, otherwise `body`.
+///
+/// # Errors
+///
+/// This function does not return an error. A failed static fetch leaves the
+/// trip update unchanged except for any catalog stop id that can already be matched.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_client::Feed;
+///
+/// assert_eq!(Feed::TripUpdates.as_str(), "trip-updates");
+/// ```
+async fn prepare_trips(
+    state: &AppState,
+    api: ApiKind,
+    feed: Feed,
+    body: bytes::Bytes,
+) -> bytes::Bytes {
+    if api != ApiKind::Rail || feed != Feed::TripUpdates || !state.tracks.enabled() {
+        return body;
+    }
+    if !state.tracks.index_ready() {
+        if let Some(rail) = state.rail.clone() {
+            let tracks = Arc::clone(&state.tracks);
+            let loaded = state
+                .cache
+                .get_or_fetch(ApiKind::Rail, Feed::Static, || {
+                    let rail = rail.clone();
+                    let tracks = Arc::clone(&tracks);
+                    async move {
+                        let raw = rail.fetch(Feed::Static).await?;
+                        Ok(finish_rail_static(&tracks, raw))
+                    }
+                })
+                .await;
+            if let Err(err) = loaded {
+                tracing::warn!(error = %err, "static GTFS was not available for track matching");
+            }
+        }
+    }
+    state.tracks.enrich(body)
 }
 
 /// Returns the client for `api`.
@@ -489,6 +569,7 @@ fn client_for(state: &AppState, api: ApiKind) -> Option<&Client> {
     match api {
         ApiKind::Rail => state.rail.as_ref(),
         ApiKind::Bus => state.bus.as_ref(),
+        ApiKind::TrainData => None,
     }
 }
 
@@ -585,6 +666,49 @@ fn feed_response(
             None,
         )
     })
+}
+
+/// Adds fare files, then platform stops, then fare areas on those platforms.
+///
+/// Fare injection runs first so each track child copies the fare `zone_id`.
+/// [`fares::inherit_track_fare_areas`] then lists `{stop_id}:station` and
+/// `{stop_id}:track:{label}` in `stop_areas.txt`.
+///
+/// # Arguments
+///
+/// * `tracks` — Platform catalog. Injection is a no-op when tracks are off.
+/// * `body` — Upstream rail `getGTFS` body.
+///
+/// # Returns
+///
+/// The zip served at `GET /rail/gtfs.zip`.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic. A corrupt checked-in fare CSV panics inside
+/// [`fares::augment_rail_gtfs`].
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::fares::FARE_HEADER;
+///
+/// assert_eq!(FARE_HEADER, "x-njt-fares");
+/// ```
+fn finish_rail_static(tracks: &TrackHub, body: bytes::Bytes) -> bytes::Bytes {
+    let priced = augment_static(body);
+    let with_tracks = tracks.inject(priced);
+    match fares::inherit_track_fare_areas(&with_tracks) {
+        Ok(bytes) => bytes::Bytes::from(bytes),
+        Err(err) => {
+            tracing::error!(error = %err, "serving rail platforms without inherited fare areas");
+            with_tracks
+        }
+    }
 }
 
 /// Adds checked-in rail fares to a static zip, or returns the original bytes.
