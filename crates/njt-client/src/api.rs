@@ -53,6 +53,12 @@ pub enum ApiKind {
     Rail,
     /// Bus G2 feeds under `/api/GTFSG2` on the bus host.
     Bus,
+    /// Rail station boards under `/api/TrainData` on the rail host.
+    ///
+    /// This is a different token endpoint from [`ApiKind::Rail`]. `getToken`
+    /// for TrainData has its own 10-calls-per-day budget. This client never
+    /// calls TrainData `isValidToken`.
+    TrainData,
 }
 
 impl ApiKind {
@@ -85,6 +91,7 @@ impl ApiKind {
         match self {
             ApiKind::Rail => "rail",
             ApiKind::Bus => "bus",
+            ApiKind::TrainData => "train-data",
         }
     }
 
@@ -117,6 +124,7 @@ impl ApiKind {
         match self {
             ApiKind::Rail => "GTFSRT",
             ApiKind::Bus => "GTFSG2",
+            ApiKind::TrainData => "TrainData",
         }
     }
 
@@ -147,7 +155,7 @@ impl ApiKind {
     /// ```
     pub fn auth_method(self) -> &'static str {
         match self {
-            ApiKind::Rail => "getToken",
+            ApiKind::Rail | ApiKind::TrainData => "getToken",
             ApiKind::Bus => "authenticateUser",
         }
     }
@@ -196,6 +204,8 @@ impl ApiKind {
                     | "getTripUpdates"
                     | "getVehiclePositions"
             ),
+            // Station boards only. `isValidToken` shares the TrainData token budget.
+            ApiKind::TrainData => matches!(method, "getToken" | "getTrainSchedule19Rec"),
         }
     }
 }

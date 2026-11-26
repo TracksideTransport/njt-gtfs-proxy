@@ -138,6 +138,66 @@ pub fn parse_token_body(bytes: &[u8]) -> Result<String, Error> {
     Ok(token.to_string())
 }
 
+/// Accepts a station-board JSON object and rejects token errors and `Null`.
+///
+/// The board is the TrainData departure list. It is JSON, so [`classify`] would
+/// reject it. This check allows an object through and still treats
+/// `errorMessage`, `Null`, and a non-object as failures.
+///
+/// # Arguments
+///
+/// * `bytes` — Raw response body. Leading and trailing ASCII whitespace is ignored.
+///
+/// # Returns
+///
+/// `Ok(())` when `bytes` is a JSON object without `errorMessage`.
+///
+/// # Errors
+///
+/// * [`Error::NullBody`] — empty, the literal `Null`, or JSON `null`.
+/// * [`Error::DailyLimit`] — `errorMessage` reports the daily usage limit.
+/// * [`Error::InvalidToken`] — `errorMessage` reports an invalid token.
+/// * [`Error::Upstream`] — some other `errorMessage`.
+/// * [`Error::UnexpectedPayload`] — the body is not a JSON object.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_client::{accept_board, Error};
+///
+/// accept_board(br#"{"STATION_2CHAR":"NY","ITEMS":[]}"#).expect("board");
+/// assert!(matches!(accept_board(b"Null"), Err(Error::NullBody)));
+/// assert!(matches!(
+///     accept_board(br#"{"errorMessage":"Invalid token."}"#),
+///     Err(Error::InvalidToken)
+/// ));
+/// ```
+pub fn accept_board(bytes: &[u8]) -> Result<(), Error> {
+    let trim = trimmed(bytes);
+    if trim.is_empty() || is_null_literal(trim) {
+        return Err(Error::NullBody);
+    }
+    let value: Value = serde_json::from_slice(trim).map_err(|_| Error::UnexpectedPayload {
+        expected: "station board json",
+    })?;
+    if value.is_null() {
+        return Err(Error::NullBody);
+    }
+    if let Some(message) = value.get("errorMessage").and_then(Value::as_str) {
+        return Err(classify_error_message(message));
+    }
+    if !value.is_object() {
+        return Err(Error::UnexpectedPayload {
+            expected: "station board json",
+        });
+    }
+    Ok(())
+}
+
 /// Accepts a data-call body only when it is a real zip or a non-JSON protobuf.
 ///
 /// # Arguments

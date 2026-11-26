@@ -16,6 +16,7 @@ use njt_client::{
 
 use crate::cache::FeedCache;
 use crate::http::{router_from_state, AppState};
+use crate::tracks::{resolve_codes, TrackHub, STATIONS};
 
 /// `NJT_ENV`. `production` (default) or `test`.
 pub const ENV_NJT_ENV: &str = "NJT_ENV";
@@ -41,6 +42,14 @@ pub const ENV_RAIL_BASE: &str = "NJT_RAIL_BASE_URL";
 pub const ENV_BUS_BASE: &str = "NJT_BUS_BASE_URL";
 /// `NJT_PROXY_ACCESS_KEY`. When set, feed requests must send [`crate::ACCESS_KEY_HEADER`].
 pub const ENV_ACCESS_KEY: &str = "NJT_PROXY_ACCESS_KEY";
+/// `NJT_TRACKS`. `on` (default) publishes platform stops and fills trip updates from headsigns.
+pub const ENV_TRACKS: &str = "NJT_TRACKS";
+/// `NJT_TRACK_BOARDS`. `off` (default). `on` also polls TrainData station boards.
+pub const ENV_TRACK_BOARDS: &str = "NJT_TRACK_BOARDS";
+/// `NJT_TRACK_STATIONS`. Comma-separated station codes. Default is the built-in list.
+pub const ENV_TRACK_STATIONS: &str = "NJT_TRACK_STATIONS";
+/// `NJT_TRACK_POLL_SECS`. Full station-board cycle when boards are on. Default 600.
+pub const ENV_TRACK_POLL: &str = "NJT_TRACK_POLL_SECS";
 
 /// Listen address used when `NJT_PROXY_BIND` is unset.
 const DEFAULT_BIND: &str = "127.0.0.1:8080";
@@ -52,6 +61,12 @@ const DEFAULT_STATIC_TTL: u64 = 6 * 60 * 60;
 const MAX_RT_TTL: u64 = 60 * 60;
 /// Maximum accepted static TTL in seconds (7 days).
 const MAX_STATIC_TTL: u64 = 7 * 24 * 60 * 60;
+/// Default station-board cycle when [`ENV_TRACK_BOARDS`] is on.
+const DEFAULT_TRACK_POLL: u64 = 600;
+/// Shortest accepted board cycle. Ten stations at this interval stay under the daily current-data budget.
+const MIN_TRACK_POLL: u64 = 120;
+/// Longest accepted board cycle.
+const MAX_TRACK_POLL: u64 = 24 * 60 * 60;
 
 /// Which NJ Transit deployment the default origins point at.
 ///
@@ -133,8 +148,8 @@ impl Environment {
     /// ```
     fn default_base(self, api: ApiKind) -> &'static str {
         match (self, api) {
-            (Self::Production, ApiKind::Rail) => RAIL_PRODUCTION_BASE,
-            (Self::Test, ApiKind::Rail) => RAIL_TEST_BASE,
+            (Self::Production, ApiKind::Rail | ApiKind::TrainData) => RAIL_PRODUCTION_BASE,
+            (Self::Test, ApiKind::Rail | ApiKind::TrainData) => RAIL_TEST_BASE,
             (Self::Production, ApiKind::Bus) => BUS_PRODUCTION_BASE,
             (Self::Test, ApiKind::Bus) => BUS_TEST_BASE,
         }
@@ -321,6 +336,14 @@ pub struct Config {
     token_cache: Option<PathBuf>,
     /// Required request header value, when set.
     access_key: Option<Secret>,
+    /// Publish platform stops and enrich trip updates from headsigns.
+    tracks_enabled: bool,
+    /// Poll TrainData station boards when headsigns omit a track.
+    track_boards: bool,
+    /// Stations included in the zip and, when boards are on, in the poll.
+    track_stations: Vec<&'static crate::tracks::Station>,
+    /// Seconds between station-board cycles.
+    track_poll: Duration,
 }
 
 impl Config {
@@ -438,6 +461,15 @@ impl Config {
             .map(str::trim)
             .filter(|key| !key.is_empty())
             .map(Secret::new);
+        let tracks_enabled =
+            parse_switch(values.get(ENV_TRACKS).map(String::as_str), ENV_TRACKS, true)?;
+        let track_boards = parse_switch(
+            values.get(ENV_TRACK_BOARDS).map(String::as_str),
+            ENV_TRACK_BOARDS,
+            false,
+        )?;
+        let track_stations = parse_stations(values.get(ENV_TRACK_STATIONS).map(String::as_str))?;
+        let track_poll = parse_track_poll(values.get(ENV_TRACK_POLL).map(String::as_str))?;
         Ok(Self {
             environment,
             bind,
@@ -449,6 +481,10 @@ impl Config {
             static_ttl,
             token_cache,
             access_key,
+            tracks_enabled,
+            track_boards,
+            track_stations,
+            track_poll,
         })
     }
 
@@ -605,6 +641,68 @@ impl Config {
         self.access_key.is_some()
     }
 
+    /// Reports whether rail platform stops and headsign tracks are published.
+    ///
+    /// # Arguments
+    ///
+    /// This method takes no arguments.
+    ///
+    /// # Returns
+    ///
+    /// `true` unless `NJT_TRACKS` is `off`. This does not poll station boards.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::Config;
+    ///
+    /// let config = Config::from_vars(None::<(&str, &str)>).expect("defaults");
+    /// assert!(config.tracks_enabled());
+    /// assert!(!config.track_boards_enabled());
+    /// ```
+    pub fn tracks_enabled(&self) -> bool {
+        self.tracks_enabled
+    }
+
+    /// Reports whether TrainData station boards are polled.
+    ///
+    /// # Arguments
+    ///
+    /// This method takes no arguments.
+    ///
+    /// # Returns
+    ///
+    /// `true` only when both track enrichment and `NJT_TRACK_BOARDS=on` are set.
+    /// The default is off, so a normal process makes no station-board calls.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::Config;
+    ///
+    /// let config = Config::from_vars([("NJT_TRACK_BOARDS", "on")]).expect("boards");
+    /// assert!(config.track_boards_enabled());
+    /// ```
+    pub fn track_boards_enabled(&self) -> bool {
+        self.tracks_enabled && self.track_boards
+    }
+
     /// Builds the HTTP router, opening the token cache if one was configured.
     ///
     /// # Arguments
@@ -677,6 +775,42 @@ impl Config {
     /// let _router = config.router_with_clock(clock).expect("router");
     /// ```
     pub fn router_with_clock(&self, clock: Arc<dyn Clock>) -> Result<axum::Router, ConfigError> {
+        Ok(self.open(clock)?.0)
+    }
+
+    /// Builds the router and the track hub that [`crate::run`] polls.
+    ///
+    /// # Arguments
+    ///
+    /// * `clock` — Token and board clock.
+    ///
+    /// # Returns
+    ///
+    /// The router and the hub. The router holds another handle to the same hub.
+    /// [`crate::run`] spawns board polling; [`Config::router`] does not.
+    ///
+    /// # Errors
+    ///
+    /// See [`Config::router`].
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::Config;
+    ///
+    /// let _router = Config::from_vars(None::<(&str, &str)>)
+    ///     .expect("config")
+    ///     .router()
+    ///     .expect("router");
+    /// ```
+    pub(crate) fn open(
+        &self,
+        clock: Arc<dyn Clock>,
+    ) -> Result<(axum::Router, Arc<TrackHub>), ConfigError> {
         let store = match &self.token_cache {
             Some(path) => {
                 TokenStore::open(path).map_err(|err| ConfigError::new(err.to_string()))?
@@ -689,14 +823,34 @@ impl Config {
             store.clone(),
             clock.clone(),
         )?;
-        let bus = self.build_api(ApiKind::Bus, self.bus.as_ref(), store, clock.clone())?;
+        let bus = self.build_api(
+            ApiKind::Bus,
+            self.bus.as_ref(),
+            store.clone(),
+            clock.clone(),
+        )?;
+        let train_data = if self.track_boards_enabled() {
+            self.build_api(ApiKind::TrainData, self.rail.as_ref(), store, clock.clone())?
+        } else {
+            drop(store);
+            None
+        };
+        let tracks = Arc::new(TrackHub::new(
+            self.tracks_enabled && rail.is_some(),
+            self.track_boards_enabled(),
+            self.track_stations.clone(),
+            self.track_poll,
+            train_data,
+            clock.clone(),
+        ));
         let state = AppState {
             rail,
             bus,
             cache: FeedCache::new(self.rt_ttl, self.static_ttl, clock),
             access_key: self.access_key.clone(),
+            tracks: Arc::clone(&tracks),
         };
-        Ok(router_from_state(state))
+        Ok((router_from_state(state), tracks))
     }
 
     /// Builds one API client, or returns `None` when credentials are absent.
@@ -745,7 +899,7 @@ impl Config {
             return Ok(None);
         };
         let base = match api {
-            ApiKind::Rail => self.rail_base.clone(),
+            ApiKind::Rail | ApiKind::TrainData => self.rail_base.clone(),
             ApiKind::Bus => self.bus_base.clone(),
         }
         .unwrap_or_else(|| self.environment.default_base(api).to_string());
@@ -800,6 +954,10 @@ fn is_known(key: &str) -> bool {
             | ENV_RAIL_BASE
             | ENV_BUS_BASE
             | ENV_ACCESS_KEY
+            | ENV_TRACKS
+            | ENV_TRACK_BOARDS
+            | ENV_TRACK_STATIONS
+            | ENV_TRACK_POLL
     )
 }
 
@@ -977,6 +1135,121 @@ fn parse_ttl(
     if seconds > max {
         return Err(ConfigError::new(format!(
             "{name} must be between 0 and {max} seconds"
+        )));
+    }
+    Ok(Duration::from_secs(seconds))
+}
+
+/// Parses `on`/`off` (also `true`/`false` and `1`/`0`).
+///
+/// # Arguments
+///
+/// * `raw` — Variable value.
+/// * `name` — Variable name used in the error.
+/// * `default` — Value used when the variable is unset.
+///
+/// # Returns
+///
+/// The selected flag.
+///
+/// # Errors
+///
+/// Returns [`ConfigError`] when the value is not one of the accepted words.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::Config;
+///
+/// assert!(Config::from_vars([("NJT_TRACKS", "off")])
+///     .expect("off")
+///     .tracks_enabled()
+///     == false);
+/// ```
+fn parse_switch(raw: Option<&str>, name: &str, default: bool) -> Result<bool, ConfigError> {
+    let Some(raw) = raw.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(default);
+    };
+    match raw.to_ascii_lowercase().as_str() {
+        "on" | "true" | "1" => Ok(true),
+        "off" | "false" | "0" => Ok(false),
+        _ => Err(ConfigError::new(format!("{name} must be on or off"))),
+    }
+}
+
+/// Resolves `NJT_TRACK_STATIONS` or returns the built-in list.
+///
+/// # Arguments
+///
+/// * `raw` — Comma-separated station codes.
+///
+/// # Returns
+///
+/// Catalog stations in the requested order.
+///
+/// # Errors
+///
+/// Returns [`ConfigError`] when a code is not in the catalog. The code is not a secret.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::Config;
+///
+/// assert!(Config::from_vars([("NJT_TRACK_STATIONS", "NOPE")]).is_err());
+/// ```
+fn parse_stations(raw: Option<&str>) -> Result<Vec<&'static crate::tracks::Station>, ConfigError> {
+    let Some(raw) = raw.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(STATIONS.iter().collect());
+    };
+    resolve_codes(raw.split(','))
+        .map_err(|code| ConfigError::new(format!("NJT_TRACK_STATIONS has unknown station {code}")))
+}
+
+/// Parses the station-board cycle length.
+///
+/// # Arguments
+///
+/// * `raw` — `NJT_TRACK_POLL_SECS`.
+///
+/// # Returns
+///
+/// The cycle. The default is 10 minutes.
+///
+/// # Errors
+///
+/// Returns [`ConfigError`] when the value is not an integer in the accepted range.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::Config;
+///
+/// let config = Config::from_vars([("NJT_TRACK_POLL_SECS", "600")]).expect("poll");
+/// assert!(!config.track_boards_enabled());
+/// ```
+fn parse_track_poll(raw: Option<&str>) -> Result<Duration, ConfigError> {
+    let Some(raw) = raw.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(Duration::from_secs(DEFAULT_TRACK_POLL));
+    };
+    let seconds: u64 = raw
+        .parse()
+        .map_err(|_| ConfigError::new("NJT_TRACK_POLL_SECS must be a whole number of seconds"))?;
+    if !(MIN_TRACK_POLL..=MAX_TRACK_POLL).contains(&seconds) {
+        return Err(ConfigError::new(format!(
+            "NJT_TRACK_POLL_SECS must be between {MIN_TRACK_POLL} and {MAX_TRACK_POLL} seconds"
         )));
     }
     Ok(Duration::from_secs(seconds))
