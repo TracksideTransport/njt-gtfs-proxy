@@ -1,156 +1,166 @@
 stop_id,stop_name,area_id,area_name,zone,routes,chart_names
-1,30TH ST. PHL.,njt_ac_30th_st_phl,30th Street Philadelphia,,ATLC,30TH ST PHL
-2,ABSECON,njt_ac_absecon,Absecon,,ATLC,ABSECON
-9,ATCO,njt_ac_atco,Atco,,ATLC,ATCO
-10,ATLANTIC CITY,njt_ac_atlantic_city,Atlantic City,,ATLC,ATLANTIC CITY
-28,CHERRY HILL,njt_ac_cherry_hill,Cherry Hill,,ATLC,CHERRY HILL
-39,EGG HARBOR,njt_ac_egg_harbor,Egg Harbor,,ATLC,EGG HARBOR
-55,HAMMONTON,njt_ac_hammonton,Hammonton,,ATLC,HAMMONTON
-71,LINDENWOLD,njt_ac_lindenwold,Lindenwold,,ATLC,LINDENWOLD
-43298,PENNSAUKEN TRANSIT CENTER,njt_ac_pennsauken,Pennsauken,,ATLC,PENNSAUKEN
-3,ALLENDALE,njt_exc_allendale,"Allendale (exception, zone 11)",11,MNBN MNBNP,ALLENDALE
-5,ANDERSON STREET,njt_exc_anderson_street_essex_street,"Anderson Street / Essex Street (exception, zone 5)",5,PASC,ANDERSON ST | ANDERSON STREET
-43,ESSEX STREET,njt_exc_anderson_street_essex_street,"Anderson Street / Essex Street (exception, zone 5)",5,PASC,ESSEX ST | ESSEX STREET
-42,EMERSON,njt_exc_emerson,"Emerson (exception, zone 8)",8,PASC,EMERSON
-51,GLEN ROCK BORO HALL,njt_exc_glen_rock_boro_hall_glen_rock_main_line,"Glen Rock Boro Hall / Glen Rock Main Line (exception, zone 8)",8,MNBN MNBNP,GLEN ROCK
-52,GLEN ROCK MAIN LINE,njt_exc_glen_rock_boro_hall_glen_rock_main_line,"Glen Rock Boro Hall / Glen Rock Main Line (exception, zone 8)",8,MNBN MNBNP,GLEN ROCK
-58,HAWTHORNE,njt_exc_hawthorne,"Hawthorne (exception, zone 7)",7,MNBN MNBNP,HAWTHORNE
-62,HILLSDALE,njt_exc_hillsdale_westwood,"Hillsdale / Westwood (exception, zone 9)",9,PASC,HILLSDALE
-156,WESTWOOD,njt_exc_hillsdale_westwood,"Hillsdale / Westwood (exception, zone 9)",9,PASC,WESTWOOD
-64,HOHOKUS,njt_exc_hohokus_waldwick,"Hohokus / Waldwick (exception, zone 10)",10,MNBN MNBNP,HO-HO-KUS
-151,WALDWICK,njt_exc_hohokus_waldwick,"Hohokus / Waldwick (exception, zone 10)",10,MNBN MNBNP,WALDWICK
-78,MAHWAH,njt_exc_mahwah_suffern,"Mahwah / Suffern (exception, zone 14)",14,MNBN MNBNP,MAHWAH
-144,SUFFERN,njt_exc_mahwah_suffern,"Mahwah / Suffern (exception, zone 14)",14,MNBN MNBNP,SUFFERN
-90,MONTVALE,njt_exc_montvale_park_ridge_woodcliff_lake,"Montvale / Park Ridge / Woodcliff Lake (exception, zone 10)",10,PASC,MONTVALE
-114,PARK RIDGE,njt_exc_montvale_park_ridge_woodcliff_lake,"Montvale / Park Ridge / Woodcliff Lake (exception, zone 10)",10,PASC,PARK RIDGE
-159,WOODCLIFF LAKE,njt_exc_montvale_park_ridge_woodcliff_lake,"Montvale / Park Ridge / Woodcliff Lake (exception, zone 10)",10,PASC,WOODCLIFF LAKE
-110,NEW BRIDGE LANDING,njt_exc_new_bridge_landing_river_edge,"New Bridge Landing / River Edge (exception, zone 6)",6,PASC,NEW BRIDGE LANDING
-132,RIVER EDGE,njt_exc_new_bridge_landing_river_edge,"New Bridge Landing / River Edge (exception, zone 6)",6,PASC,RIVER EDGE
-111,ORADELL,njt_exc_oradell,"Oradell (exception, zone 7)",7,PASC,ORADELL
-124,PRINCETON,njt_exc_princeton,Princeton (exception),,PRIN,PRINCETON
-128,RAMSEY,njt_exc_ramsey_ramsey_route_17_station,"Ramsey / Ramsey Route 17 Station (exception, zone 12)",12,MNBN MNBNP,RAMSEY
-38417,RAMSEY ROUTE 17 STATION,njt_exc_ramsey_ramsey_route_17_station,"Ramsey / Ramsey Route 17 Station (exception, zone 12)",12,MNBN MNBNP,RAMSEY ROUTE 17 | RAMSEY RT. 17
-131,RIDGEWOOD,njt_exc_ridgewood,"Ridgewood (exception, zone 9)",9,MNBN MNBNP,RIDGEWOOD
-63,HOBOKEN,njt_hoboken,Hoboken Terminal,,BNTN BNTNM MNBN MNBNP MNE MNEG MRL PASC,HOBOKEN
-107,NEWARK PENN STATION,njt_newark_penn,Newark Penn Station,,NEC NJCL NJCLL RARV,PENN STATION NEWARK
-105,NEW YORK PENN STATION,njt_nyp,New York Penn Station,,BNTNM MNE MNEG NEC NJCL NJCLL RARV,NEW YORK PENN STATION
-38174,SECAUCUS LOWER LEVEL,njt_zone_1,Rail zone 1,1,MNBN MNBNP MRL PASC,SECAUCUS | SECAUCUS JCT (Lower Level) | SECAUCUS LOWER LEVEL
-38187,SECAUCUS UPPER LEVEL,njt_zone_1,Rail zone 1,1,BNTNM MNE MNEG NEC NJCL NJCLL RARV,SECAUCUS | SECAUCUS JCT (Lower Level) | SECAUCUS LOWER LEVEL
-27,CHATHAM,njt_zone_10_hoboken_div,Rail zone 10 (Hoboken division),10,MNE,CHATHAM
-69,LINCOLN PARK,njt_zone_10_hoboken_div,Rail zone 10 (Hoboken division),10,BNTN,LINCOLN PARK
-99,MURRAY HILL,njt_zone_10_hoboken_div,Rail zone 10 (Hoboken division),10,MNEG,MURRAY HILL
-83,METROPARK,njt_zone_10_newark_div,Rail zone 10 (Newark division),10,NEC,METRO PARK
-102,NETHERWOOD,njt_zone_10_newark_div,Rail zone 10 (Newark division),10,RARV,NETHERWOOD
-158,WOODBRIDGE,njt_zone_10_newark_div,Rail zone 10 (Newark division),10,NJCL NJCLL,WOODBRIDGE
-17,BERKELEY HEIGHTS,njt_zone_11_hoboken_div,Rail zone 11 (Hoboken division),11,MNEG,BERKELEY HEIGHTS
-77,MADISON,njt_zone_11_hoboken_div,Rail zone 11 (Hoboken division),11,MNE,MADISON
-147,TOWACO,njt_zone_11_hoboken_div,Rail zone 11 (Hoboken division),11,BNTN,TOWACO
-84,METUCHEN,njt_zone_11_newark_div,Rail zone 11 (Newark division),11,NEC,METUCHEN
-120,PLAINFIELD,njt_zone_11_newark_div,Rail zone 11 (Newark division),11,RARV,PLAINFIELD
-30,CONVENT,njt_zone_12_hoboken_div,Rail zone 12 (Hoboken division),12,MNE,CONVENT
-48,GILLETTE,njt_zone_12_hoboken_div,Rail zone 12 (Hoboken division),12,MNEG,GILLETTE
-36,DUNELLEN,njt_zone_12_newark_div,Rail zone 12 (Newark division),12,RARV,DUNELLEN
-119,PERTH AMBOY,njt_zone_12_newark_div,Rail zone 12 (Newark division),12,NJCL NJCLL,PERTH AMBOY
-38,EDISON STATION,njt_zone_13,Rail zone 13,13,NEC,EDISON
-139,SOUTH AMBOY,njt_zone_13,Rail zone 13,13,NJCL NJCLL,SOUTH AMBOY
-20,BOONTON,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,BNTN,BOONTON
-76,LYONS,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,MNEG,LYONS
-88,MILLINGTON,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,MNEG,MILLINGTON
-92,MORRISTOWN,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,MNE,MORRISTOWN
-96,MOUNTAIN LAKES,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,BNTN,MOUNTAIN LAKES
-143,STIRLING,njt_zone_14_hoboken_div,Rail zone 14 (Hoboken division),14,MNEG,STIRLING
-21,BOUND BROOK,njt_zone_14_newark_div,Rail zone 14 (Newark division),14,RARV,BOUND BROOK
-103,NEW BRUNSWICK,njt_zone_14_newark_div,Rail zone 14 (Newark division),14,NEC,NEW BRUNSWICK
-32906,JERSEY AVE.,njt_zone_14_newark_div,Rail zone 14 (Newark division),14,NEC,JERSEY AVE.
-24,BRIDGEWATER,njt_zone_15,Rail zone 15,15,RARV,BRIDGEWATER
-37169,ABERDEEN-MATAWAN,njt_zone_15,Rail zone 15,15,NJCL NJCLL,MATAWAN
-12,BASKING RIDGE,njt_zone_16_hoboken_div,Rail zone 16 (Hoboken division),16,MNEG,BASKING RIDGE
-18,BERNARDSVILLE,njt_zone_16_hoboken_div,Rail zone 16 (Hoboken division),16,MNEG,BERNARDSVILLE
-34,DENVILLE,njt_zone_16_hoboken_div,Rail zone 16 (Hoboken division),16,BNTN MNE,DENVILLE
-91,MORRIS PLAINS,njt_zone_16_hoboken_div,Rail zone 16 (Hoboken division),16,MNE,MORRIS PLAINS
-94,MOUNT TABOR,njt_zone_16_hoboken_div,Rail zone 16 (Hoboken division),16,MNE,MOUNT TABOR
-59,HAZLET,njt_zone_16_newark_div,Rail zone 16 (Newark division),16,NJCL NJCLL,HAZLET
-35,DOVER,njt_zone_17_hoboken_div,Rail zone 17 (Hoboken division),17,BNTN MNE,DOVER
-45,FAR HILLS,njt_zone_17_hoboken_div,Rail zone 17 (Hoboken division),17,MNEG,FAR HILLS
-85,MIDDLETOWN NJ,njt_zone_17_newark_div,Rail zone 17 (Newark division),17,NJCL NJCLL,MIDDLETOWN
-129,RARITAN,njt_zone_17_newark_div,Rail zone 17 (Newark division),17,RARV,RARITAN
-138,SOMERVILLE,njt_zone_17_newark_div,Rail zone 17 (Newark division),17,RARV,SOMERVILLE
-49,GLADSTONE,njt_zone_18_hoboken_div,Rail zone 18 (Hoboken division),18,MNEG,GLADSTONE
-117,PEAPACK,njt_zone_18_hoboken_div,Rail zone 18 (Hoboken division),18,MNEG,PEAPACK
-108,NORTH BRANCH,njt_zone_18_newark_div,Rail zone 18 (Newark division),18,RARV,NORTH BRANCH | NORTHBRANCH
-130,RED BANK,njt_zone_18_newark_div,Rail zone 18 (Newark division),18,NJCL NJCLL,RED BANK
-54,HACKETTSTOWN,njt_zone_19_hoboken_div,Rail zone 19 (Hoboken division),19,BNTN MNE,HACKETTSTOWN
-67,LAKE HOPATCONG,njt_zone_19_hoboken_div,Rail zone 19 (Hoboken division),19,BNTN MNE,LAKE HOPATCONG
-93,MOUNT OLIVE,njt_zone_19_hoboken_div,Rail zone 19 (Hoboken division),19,BNTN MNE,MOUNT OLIVE | MT. OLIVE
-101,NETCONG,njt_zone_19_hoboken_div,Rail zone 19 (Hoboken division),19,BNTN MNE,NETCONG
-39472,MOUNT ARLINGTON,njt_zone_19_hoboken_div,Rail zone 19 (Hoboken division),19,BNTN MNE,MT ARLINGTON | MT. ARLINGTON
-73,LITTLE SILVER,njt_zone_19_newark_div,Rail zone 19 (Newark division),19,NJCL NJCLL,LITTLE SILVER
-125,PRINCETON JCT.,njt_zone_19_newark_div,Rail zone 19 (Newark division),19,NEC PRIN,PRINCETON JUNCTION
-157,WHITE HOUSE,njt_zone_19_newark_div,Rail zone 19 (Newark division),19,RARV,WHITE HOUSE
-6,ANNANDALE,njt_zone_20,Rail zone 20,20,RARV,ANNANDALE
-40,ELBERON,njt_zone_20,Rail zone 20,20,NJCL NJCLL,ELBERON
-68,LEBANON,njt_zone_20,Rail zone 20,20,RARV,LEBANON
-74,LONG BRANCH,njt_zone_20,Rail zone 20,20,NJCL NJCLL,LONG BRANCH
-32905,HAMILTON,njt_zone_20,Rail zone 20,20,NEC,HAMILTON
-100,NANUET,njt_zone_21_hoboken_div,Rail zone 21 (Hoboken division),21,PASC,NANUET
-118,PEARL RIVER,njt_zone_21_hoboken_div,Rail zone 21 (Hoboken division),21,PASC,PEARL RIVER
-142,SPRING VALLEY,njt_zone_21_hoboken_div,Rail zone 21 (Hoboken division),21,PASC,SPRING VALLEY
-4,ALLENHURST,njt_zone_21_newark_div,Rail zone 21 (Newark division),21,NJCL NJCLL,ALLENHURST
-8,ASBURY PARK,njt_zone_21_newark_div,Rail zone 21 (Newark division),21,NJCL NJCLL,ASBURY PARK
-22,BRADLEY BEACH,njt_zone_21_newark_div,Rail zone 21 (Newark division),21,NJCL NJCLL,BRADLEY BEACH
-60,HIGH BRIDGE,njt_zone_21_newark_div,Rail zone 21 (Newark division),21,RARV,HIGH BRIDGE
-15,BELMAR,njt_zone_22,Rail zone 22,22,NJCL NJCLL,BELMAR
-141,SPRING LAKE,njt_zone_22,Rail zone 22,22,NJCL NJCLL,SPRING LAKE
-148,TRENTON TRANSIT CENTER,njt_zone_22,Rail zone 22,22,NEC,TRENTON
-13,BAY HEAD,njt_zone_23,Rail zone 23,23,NJCL NJCLL,BAY HEAD JCT.
-79,MANASQUAN,njt_zone_23,Rail zone 23,23,NJCL NJCLL,MANASQUAN
-122,POINT PLEASANT,njt_zone_23,Rail zone 23,23,NJCL NJCLL,POINT PLEASANT | PT. PLEASANT
-75,LYNDHURST,njt_zone_2_hoboken_div,Rail zone 2 (Hoboken division),2,MNBN MNBNP,LYNDHURST
-106,NEWARK BROAD ST,njt_zone_2_hoboken_div,Rail zone 2 (Hoboken division),2,BNTN BNTNM MNE MNEG,BROAD STREET NEWARK
-33,DELAWANNA,njt_zone_3,Rail zone 3,3,MNBN MNBNP,DELAWANNA
-134,RUTHERFORD,njt_zone_3,Rail zone 3,3,MNBN MNBNP,RUTHERFORD
-160,WOOD-RIDGE,njt_zone_3,Rail zone 3,3,PASC,WOOD-RIDGE
-19,BLOOMFIELD,njt_zone_4,Rail zone 4,4,BNTN BNTNM,BLOOMFIELD
-23,BRICK CHURCH,njt_zone_4,Rail zone 4,4,MNE MNEG,BRICK CHURCH
-37,EAST ORANGE,njt_zone_4,Rail zone 4,4,MNE MNEG,EAST ORANGE
-46,GARFIELD,njt_zone_4,Rail zone 4,4,MNBN MNBNP,GARFIELD
-50,GLEN RIDGE,njt_zone_4,Rail zone 4,4,BNTN BNTNM,GLEN RIDGE
-112,ORANGE,njt_zone_4,Rail zone 4,4,MNE MNEG,ORANGE
-115,PASSAIC,njt_zone_4,Rail zone 4,4,MNBN MNBNP,PASSAIC
-146,TETERBORO,njt_zone_4,Rail zone 4,4,PASC,TETERBORO
-154,WATSESSING AVENUE,njt_zone_4,Rail zone 4,4,BNTN BNTNM,WATSESSING | WATSESSING (RIDGEWOOD AVE.)
-43599,WESMONT,njt_zone_4,Rail zone 4,4,MNBN MNBNP,WESMONT
-14,BAY STREET,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,BNTN BNTNM,BAY ST. | BAY STREET
-29,CLIFTON,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,MNBN MNBNP,CLIFTON
-61,HIGHLAND AVENUE,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,MNE MNEG,HIGHLAND AVE.
-97,MOUNTAIN STATION,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,MNE MNEG,MOUNTAIN STA. | MOUNTAIN STATION
-121,PLAUDERVILLE,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,MNBN MNBNP,PLAUDERVILLE
-140,SOUTH ORANGE,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,MNE MNEG,SO. ORANGE | SOUTH ORANGE
-150,UPPER MONTCLAIR,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,BNTN BNTNM,UPPER MONTCLAIR
-152,WALNUT STREET,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,BNTN BNTNM,WALNUT ST. | WALNUT STREET
-153,WATCHUNG AVENUE,njt_zone_5_hoboken_div,Rail zone 5 (Hoboken division),5,BNTN BNTNM,WATCHUNG AVE | WATCHUNG AVE.
-41,ELIZABETH,njt_zone_5_newark_div,Rail zone 5 (Newark division),5,NEC NJCL,ELIZABETH
-109,NORTH ELIZABETH,njt_zone_5_newark_div,Rail zone 5 (Newark division),5,NEC NJCL,NO. ELIZABETH | NORTH ELIZABETH
-38105,UNION,njt_zone_5_newark_div,Rail zone 5 (Newark division),5,RARV,UNION STATION
-25,BROADWAY,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,MNBN MNBNP,BROADWAY (FAIRLAWN) (FAIRLAWN) | FAIRLAWN-BRDWY
-81,MAPLEWOOD,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,MNE MNEG,MAPLEWOOD
-89,MONTCLAIR HEIGHTS,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,BNTN BNTNM,MONTCLAIR HEIGHTS
-95,MOUNTAIN AVENUE,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,BNTN BNTNM,MOUNTAIN AVE.
-116,PATERSON,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,MNBN MNBNP,PATERSON
-126,RADBURN,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,MNBN MNBNP,RADBURN
-38081,MSU,njt_zone_6_hoboken_div,Rail zone 6 (Hoboken division),6,BNTN BNTNM,MONTCLAIR STATE U | MONTCLAIR STATE UNIV
-31,ROSELLE PARK,njt_zone_6_newark_div,Rail zone 6 (Newark division),6,RARV,ROSELLE PARK
-87,MILLBURN,njt_zone_7_hoboken_div,Rail zone 7 (Hoboken division),7,MNE MNEG,MILLBURN
-136,SHORT HILLS,njt_zone_7_hoboken_div,Rail zone 7 (Hoboken division),7,MNE MNEG,SHORT HILLS
-32,CRANFORD,njt_zone_7_newark_div,Rail zone 7 (Newark division),7,RARV,CRANFORD
-70,LINDEN,njt_zone_7_newark_div,Rail zone 7 (Newark division),7,NEC NJCL,LINDEN
-72,LITTLE FALLS,njt_zone_8_hoboken_div,Rail zone 8 (Hoboken division),8,BNTN,LITTLE FALLS
-47,GARWOOD,njt_zone_8_newark_div,Rail zone 8 (Newark division),8,RARV,GARWOOD
-127,RAHWAY,njt_zone_8_newark_div,Rail zone 8 (Newark division),8,NEC NJCL NJCLL,RAHWAY
-155,WESTFIELD,njt_zone_8_newark_div,Rail zone 8 (Newark division),8,RARV,WESTFIELD
-98,MOUNTAIN VIEW,njt_zone_9_hoboken_div,Rail zone 9 (Hoboken division),9,BNTN,MOUNTAIN VIEW
-104,NEW PROVIDENCE,njt_zone_9_hoboken_div,Rail zone 9 (Hoboken division),9,MNEG,NEW PROVIDENCE
-145,SUMMIT,njt_zone_9_hoboken_div,Rail zone 9 (Hoboken division),9,MNE MNEG,SUMMIT
-39635,WAYNE/ROUTE 23 TRANSIT CENTER [RR],njt_zone_9_hoboken_div,Rail zone 9 (Hoboken division),9,BNTN,WAYNE RT. 23
-11,AVENEL,njt_zone_9_newark_div,Rail zone 9 (Newark division),9,NJCL NJCLL,AVENEL
-44,FANWOOD,njt_zone_9_newark_div,Rail zone 9 (Newark division),9,RARV,FANWOOD
+1,30TH ST. PHL.,njt_stop_1,30TH ST. PHL.,,ATLC,30th Street Station Philadelphia
+2,ABSECON,njt_stop_2,ABSECON,,ATLC,Absecon Station
+3,ALLENDALE,njt_stop_3,ALLENDALE,,MNBN MNBNP,Allendale Station
+4,ALLENHURST,njt_stop_4,ALLENHURST,,NJCL NJCLL,Allenhurst Station
+5,ANDERSON STREET,njt_stop_5,ANDERSON STREET,,PASC,Anderson Street Station
+6,ANNANDALE,njt_stop_6,ANNANDALE,,RARV,Annandale Station
+8,ASBURY PARK,njt_stop_8,ASBURY PARK,,NJCL NJCLL,Asbury Park Station
+9,ATCO,njt_stop_9,ATCO,,ATLC,Atco Station
+10,ATLANTIC CITY,njt_stop_10,ATLANTIC CITY,,ATLC,Atlantic City Rail Terminal
+11,AVENEL,njt_stop_11,AVENEL,,NJCL NJCLL,Avenel Station
+12,BASKING RIDGE,njt_stop_12,BASKING RIDGE,,MNEG,Basking Ridge Station
+13,BAY HEAD,njt_stop_13,BAY HEAD,,NJCL NJCLL,Bay Head Station
+14,BAY STREET,njt_stop_14,BAY STREET,,BNTN BNTNM,Bay Street Station
+15,BELMAR,njt_stop_15,BELMAR,,NJCL NJCLL,Belmar Station
+17,BERKELEY HEIGHTS,njt_stop_17,BERKELEY HEIGHTS,,MNEG,Berkeley Heights Station
+18,BERNARDSVILLE,njt_stop_18,BERNARDSVILLE,,MNEG,Bernardsville Station
+19,BLOOMFIELD,njt_stop_19,BLOOMFIELD,,BNTN BNTNM,Bloomfield Rail Station
+20,BOONTON,njt_stop_20,BOONTON,,BNTN,Boonton Station
+21,BOUND BROOK,njt_stop_21,BOUND BROOK,,RARV,Bound Brook Station
+22,BRADLEY BEACH,njt_stop_22,BRADLEY BEACH,,NJCL NJCLL,Bradley Beach Station
+23,BRICK CHURCH,njt_stop_23,BRICK CHURCH,,MNE MNEG,Brick Church Station
+24,BRIDGEWATER,njt_stop_24,BRIDGEWATER,,RARV,Bridgewater Station
+25,BROADWAY,njt_stop_25,BROADWAY,,MNBN MNBNP,Broadway Station Fair Lawn
+26,CAMPBELL HALL,njt_stop_26,CAMPBELL HALL,,MNBNP,Campbell Hall Station
+27,CHATHAM,njt_stop_27,CHATHAM,,MNE,Chatham Station
+28,CHERRY HILL,njt_stop_28,CHERRY HILL,,ATLC,Cherry Hill Station
+29,CLIFTON,njt_stop_29,CLIFTON,,MNBN MNBNP,Clifton Station
+30,CONVENT,njt_stop_30,CONVENT,,MNE,Convent Station
+31,ROSELLE PARK,njt_stop_31,ROSELLE PARK,,RARV,Roselle Park Station
+32,CRANFORD,njt_stop_32,CRANFORD,,RARV,Cranford Station
+33,DELAWANNA,njt_stop_33,DELAWANNA,,MNBN MNBNP,Delawanna Station
+34,DENVILLE,njt_stop_34,DENVILLE,,BNTN MNE,Denville Station
+35,DOVER,njt_stop_35,DOVER,,BNTN MNE,Dover Station
+36,DUNELLEN,njt_stop_36,DUNELLEN,,RARV,Dunellen Station
+37,EAST ORANGE,njt_stop_37,EAST ORANGE,,MNE MNEG,East Orange Station
+38,EDISON STATION,njt_stop_38,EDISON STATION,,NEC,Edison Station
+39,EGG HARBOR,njt_stop_39,EGG HARBOR,,ATLC,Egg Harbor City Station
+40,ELBERON,njt_stop_40,ELBERON,,NJCL NJCLL,Elberon Station
+41,ELIZABETH,njt_stop_41,ELIZABETH,,NEC NJCL,Elizabeth Station
+42,EMERSON,njt_stop_42,EMERSON,,PASC,Emerson Station
+43,ESSEX STREET,njt_stop_43,ESSEX STREET,,PASC,Essex Street Station (PVL)
+44,FANWOOD,njt_stop_44,FANWOOD,,RARV,Fanwood Station
+45,FAR HILLS,njt_stop_45,FAR HILLS,,MNEG,Far Hills Station
+46,GARFIELD,njt_stop_46,GARFIELD,,MNBN MNBNP,Garfield Station
+47,GARWOOD,njt_stop_47,GARWOOD,,RARV,Garwood Station
+48,GILLETTE,njt_stop_48,GILLETTE,,MNEG,Gillette Station
+49,GLADSTONE,njt_stop_49,GLADSTONE,,MNEG,Gladstone Station
+50,GLEN RIDGE,njt_stop_50,GLEN RIDGE,,BNTN BNTNM,Glen Ridge Station
+51,GLEN ROCK BORO HALL,njt_stop_51,GLEN ROCK BORO HALL,,MNBN MNBNP,Glen Rock Boro Hall Station
+52,GLEN ROCK MAIN LINE,njt_stop_52,GLEN ROCK MAIN LINE,,MNBN MNBNP,Glen Rock Main Line Station
+54,HACKETTSTOWN,njt_stop_54,HACKETTSTOWN,,BNTN MNE,Hackettstown Station
+55,HAMMONTON,njt_stop_55,HAMMONTON,,ATLC,Hammonton Station
+57,HARRIMAN,njt_stop_57,HARRIMAN,,MNBNP,Harriman Station
+58,HAWTHORNE,njt_stop_58,HAWTHORNE,,MNBN MNBNP,Hawthorne Station
+59,HAZLET,njt_stop_59,HAZLET,,NJCL NJCLL,Hazlet Station
+60,HIGH BRIDGE,njt_stop_60,HIGH BRIDGE,,RARV,High Bridge Station
+61,HIGHLAND AVENUE,njt_stop_61,HIGHLAND AVENUE,,MNE MNEG,Highland Avenue Station
+62,HILLSDALE,njt_stop_62,HILLSDALE,,PASC,Hillsdale Station
+63,HOBOKEN,njt_stop_63,HOBOKEN,,BNTN BNTNM MNBN MNBNP MNE MNEG MRL PASC,Hoboken Terminal
+64,HOHOKUS,njt_stop_64,HOHOKUS,,MNBN MNBNP,Ho-Ho-Kus Station
+67,LAKE HOPATCONG,njt_stop_67,LAKE HOPATCONG,,BNTN MNE,Lake Hopatcong Station
+68,LEBANON,njt_stop_68,LEBANON,,RARV,Lebanon Station
+69,LINCOLN PARK,njt_stop_69,LINCOLN PARK,,BNTN,Lincoln Park Station
+70,LINDEN,njt_stop_70,LINDEN,,NEC NJCL,Linden Station
+71,LINDENWOLD,njt_stop_71,LINDENWOLD,,ATLC,Lindenwold Station
+72,LITTLE FALLS,njt_stop_72,LITTLE FALLS,,BNTN,Little Falls Station
+73,LITTLE SILVER,njt_stop_73,LITTLE SILVER,,NJCL NJCLL,Little Silver Station
+74,LONG BRANCH,njt_stop_74,LONG BRANCH,,NJCL NJCLL,Long Branch Station
+75,LYNDHURST,njt_stop_75,LYNDHURST,,MNBN MNBNP,Lyndhurst Station
+76,LYONS,njt_stop_76,LYONS,,MNEG,Lyons Station
+77,MADISON,njt_stop_77,MADISON,,MNE,Madison Station
+78,MAHWAH,njt_stop_78,MAHWAH,,MNBN MNBNP,Mahwah Station
+79,MANASQUAN,njt_stop_79,MANASQUAN,,NJCL NJCLL,Manasquan Station
+81,MAPLEWOOD,njt_stop_81,MAPLEWOOD,,MNE MNEG,Maplewood Station
+83,METROPARK,njt_stop_83,METROPARK,,NEC,Metropark Station
+84,METUCHEN,njt_stop_84,METUCHEN,,NEC,Metuchen Station
+85,MIDDLETOWN NJ,njt_stop_85,MIDDLETOWN NJ,,NJCL NJCLL,Middletown New Jersey Station
+86,MIDDLETOWN NY,njt_stop_86,MIDDLETOWN NY,,MNBNP,Middletown New York Station
+87,MILLBURN,njt_stop_87,MILLBURN,,MNE MNEG,Millburn Station
+88,MILLINGTON,njt_stop_88,MILLINGTON,,MNEG,Millington Station
+89,MONTCLAIR HEIGHTS,njt_stop_89,MONTCLAIR HEIGHTS,,BNTN BNTNM,Montclair Heights Station
+90,MONTVALE,njt_stop_90,MONTVALE,,PASC,Montvale Station
+91,MORRIS PLAINS,njt_stop_91,MORRIS PLAINS,,MNE,Morris Plains Station
+92,MORRISTOWN,njt_stop_92,MORRISTOWN,,MNE,Morristown Station
+93,MOUNT OLIVE,njt_stop_93,MOUNT OLIVE,,BNTN MNE,Mount Olive Station
+94,MOUNT TABOR,njt_stop_94,MOUNT TABOR,,MNE,Mount Tabor Station
+95,MOUNTAIN AVENUE,njt_stop_95,MOUNTAIN AVENUE,,BNTN BNTNM,Mountain Avenue Station
+96,MOUNTAIN LAKES,njt_stop_96,MOUNTAIN LAKES,,BNTN,Mountain Lakes Station
+97,MOUNTAIN STATION,njt_stop_97,MOUNTAIN STATION,,MNE MNEG,Mountain Station
+98,MOUNTAIN VIEW,njt_stop_98,MOUNTAIN VIEW,,BNTN,Mountain View Station
+99,MURRAY HILL,njt_stop_99,MURRAY HILL,,MNEG,Murray Hill Station
+100,NANUET,njt_stop_100,NANUET,,PASC,Nanuet Station
+101,NETCONG,njt_stop_101,NETCONG,,BNTN MNE,Netcong Station
+102,NETHERWOOD,njt_stop_102,NETHERWOOD,,RARV,Netherwood Station
+103,NEW BRUNSWICK,njt_stop_103,NEW BRUNSWICK,,NEC,New Brunswick Station
+104,NEW PROVIDENCE,njt_stop_104,NEW PROVIDENCE,,MNEG,New Providence Station
+105,NEW YORK PENN STATION,njt_stop_105,NEW YORK PENN STATION,,BNTNM MNE MNEG NEC NJCL NJCLL RARV,New York Penn Station
+106,NEWARK BROAD ST,njt_stop_106,NEWARK BROAD ST,,BNTN BNTNM MNE MNEG,Newark Broad Street Station
+107,NEWARK PENN STATION,njt_stop_107,NEWARK PENN STATION,,NEC NJCL NJCLL RARV,Newark Penn Station
+108,NORTH BRANCH,njt_stop_108,NORTH BRANCH,,RARV,North Branch Station
+109,NORTH ELIZABETH,njt_stop_109,NORTH ELIZABETH,,NEC NJCL,North Elizabeth Station
+110,NEW BRIDGE LANDING,njt_stop_110,NEW BRIDGE LANDING,,PASC,New Bridge Landing Station
+111,ORADELL,njt_stop_111,ORADELL,,PASC,Oradell Station
+112,ORANGE,njt_stop_112,ORANGE,,MNE MNEG,Orange Station
+113,OTISVILLE,njt_stop_113,OTISVILLE,,MNBNP,Otisville Station
+114,PARK RIDGE,njt_stop_114,PARK RIDGE,,PASC,Park Ridge Station
+115,PASSAIC,njt_stop_115,PASSAIC,,MNBN MNBNP,Passaic Station
+116,PATERSON,njt_stop_116,PATERSON,,MNBN MNBNP,Paterson Station
+117,PEAPACK,njt_stop_117,PEAPACK,,MNEG,Peapack Station
+118,PEARL RIVER,njt_stop_118,PEARL RIVER,,PASC,Pearl River Station
+119,PERTH AMBOY,njt_stop_119,PERTH AMBOY,,NJCL NJCLL,Perth Amboy Station
+120,PLAINFIELD,njt_stop_120,PLAINFIELD,,RARV,Plainfield Station
+121,PLAUDERVILLE,njt_stop_121,PLAUDERVILLE,,MNBN MNBNP,Plauderville Station
+122,POINT PLEASANT,njt_stop_122,POINT PLEASANT,,NJCL NJCLL,Point Pleasant Beach Station
+123,PORT JERVIS,njt_stop_123,PORT JERVIS,,MNBNP,Port Jervis Station
+124,PRINCETON,njt_stop_124,PRINCETON,,PRIN,Princeton Station
+125,PRINCETON JCT.,njt_stop_125,PRINCETON JCT.,,NEC PRIN,Princeton Junction Station
+126,RADBURN,njt_stop_126,RADBURN,,MNBN MNBNP,Radburn Station
+127,RAHWAY,njt_stop_127,RAHWAY,,NEC NJCL NJCLL,Rahway Station
+128,RAMSEY,njt_stop_128,RAMSEY,,MNBN MNBNP,Ramsey Main Street Station
+129,RARITAN,njt_stop_129,RARITAN,,RARV,Raritan Station
+130,RED BANK,njt_stop_130,RED BANK,,NJCL NJCLL,Red Bank Station
+131,RIDGEWOOD,njt_stop_131,RIDGEWOOD,,MNBN MNBNP,Ridgewood Station
+132,RIVER EDGE,njt_stop_132,RIVER EDGE,,PASC,River Edge Station
+134,RUTHERFORD,njt_stop_134,RUTHERFORD,,MNBN MNBNP,Rutherford Station
+135,SALISBURY MILLS-CORNWALL,njt_stop_135,SALISBURY MILLS-CORNWALL,,MNBNP,Salisbury Mills Cornwall Station
+136,SHORT HILLS,njt_stop_136,SHORT HILLS,,MNE MNEG,Short Hills Station
+137,SLOATSBURG,njt_stop_137,SLOATSBURG,,MNBNP,Sloatsburg Station
+138,SOMERVILLE,njt_stop_138,SOMERVILLE,,RARV,Somerville Station
+139,SOUTH AMBOY,njt_stop_139,SOUTH AMBOY,,NJCL NJCLL,South Amboy Station
+140,SOUTH ORANGE,njt_stop_140,SOUTH ORANGE,,MNE MNEG,South Orange Station
+141,SPRING LAKE,njt_stop_141,SPRING LAKE,,NJCL NJCLL,Spring Lake Station
+142,SPRING VALLEY,njt_stop_142,SPRING VALLEY,,PASC,Spring Valley Station
+143,STIRLING,njt_stop_143,STIRLING,,MNEG,Stirling Station
+144,SUFFERN,njt_stop_144,SUFFERN,,MNBN MNBNP,Suffern Station
+145,SUMMIT,njt_stop_145,SUMMIT,,MNE MNEG,Summit Station
+146,TETERBORO,njt_stop_146,TETERBORO,,PASC,Teterboro Station
+147,TOWACO,njt_stop_147,TOWACO,,BNTN,Towaco Station
+148,TRENTON TRANSIT CENTER,njt_stop_148,TRENTON TRANSIT CENTER,,NEC,Trenton Transit Center
+149,TUXEDO,njt_stop_149,TUXEDO,,MNBNP,Tuxedo Station
+150,UPPER MONTCLAIR,njt_stop_150,UPPER MONTCLAIR,,BNTN BNTNM,Upper Montclair Station
+151,WALDWICK,njt_stop_151,WALDWICK,,MNBN MNBNP,Waldwick Station
+152,WALNUT STREET,njt_stop_152,WALNUT STREET,,BNTN BNTNM,Walnut Street Station
+153,WATCHUNG AVENUE,njt_stop_153,WATCHUNG AVENUE,,BNTN BNTNM,Watchung Avenue Station
+154,WATSESSING AVENUE,njt_stop_154,WATSESSING AVENUE,,BNTN BNTNM,Watsessing Avenue Station
+155,WESTFIELD,njt_stop_155,WESTFIELD,,RARV,Westfield Station
+156,WESTWOOD,njt_stop_156,WESTWOOD,,PASC,Westwood Station
+157,WHITE HOUSE,njt_stop_157,WHITE HOUSE,,RARV,White House Station
+158,WOODBRIDGE,njt_stop_158,WOODBRIDGE,,NJCL NJCLL,Woodbridge Station
+159,WOODCLIFF LAKE,njt_stop_159,WOODCLIFF LAKE,,PASC,Woodcliff Lake Station
+160,WOOD-RIDGE,njt_stop_160,WOOD-RIDGE,,PASC,Wood Ridge Station
+32905,HAMILTON,njt_stop_32905,HAMILTON,,NEC,Hamilton Station
+32906,JERSEY AVE.,njt_stop_32906,JERSEY AVE.,,NEC,Jersey Avenue Station (Northeast Corridor)
+37169,ABERDEEN-MATAWAN,njt_stop_37169,ABERDEEN-MATAWAN,,NJCL NJCLL,Aberdeen Matawan Station
+37953,NEWARK AIRPORT RAILROAD STATION,njt_stop_37953,NEWARK AIRPORT RAILROAD STATION,,NEC NJCL,Newark Airport Rail Station
+38081,MSU,njt_stop_38081,MSU,,BNTN BNTNM,Montclair State University Station
+38105,UNION,njt_stop_38105,UNION,,RARV,Union Station
+38174,SECAUCUS LOWER LEVEL,njt_secaucus,Secaucus Junction,,MNBN MNBNP MRL PASC,Secaucus Junction Station
+38187,SECAUCUS UPPER LEVEL,njt_secaucus,Secaucus Junction,,BNTNM MNE MNEG NEC NJCL NJCLL RARV,Secaucus Junction Station
+38417,RAMSEY ROUTE 17 STATION,njt_stop_38417,RAMSEY ROUTE 17 STATION,,MNBN MNBNP,Ramsey Route 17 Station
+39472,MOUNT ARLINGTON,njt_stop_39472,MOUNT ARLINGTON,,BNTN MNE,Mount Arlington Station
+39635,WAYNE/ROUTE 23 TRANSIT CENTER [RR],njt_stop_39635,WAYNE/ROUTE 23 TRANSIT CENTER [RR],,BNTN,Wayne-Route 23 Transit Center Rail Station
+40570,MEADOWLANDS RAIL STATION,njt_stop_40570,MEADOWLANDS RAIL STATION,,MRL,Meadowlands Rail Station
+43298,PENNSAUKEN TRANSIT CENTER,njt_stop_43298,PENNSAUKEN TRANSIT CENTER,,ATLC,Pennsauken Transit Center Station
+43599,WESMONT,njt_stop_43599,WESMONT,,MNBN MNBNP,Wesmont Station

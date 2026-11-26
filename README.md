@@ -21,17 +21,15 @@ A rail route exists only when both `NJT_RAIL_USERNAME` and `NJT_RAIL_PASSWORD` a
 
 ## Rail fares
 
-`GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes in the rail zip (Hudson-Bergen, Newark Light Rail, River LINE) are not part of the rail fare network.
+`GET /rail/gtfs.zip` is the upstream rail zip with fare files added. The response header `x-njt-fares` is `added` when those files are present and `passthrough` when the body was not a GTFS zip. Bus zips are unchanged. Light rail routes (short names HBLR, NLR, RVLN, RVR) are not part of the rail fare network, including when the developer zip marks every route `route_type` 113. Platform stops added for tracks (`{stop_id}:station` and `{stop_id}:track:{label}`) inherit that stop's fare area.
 
 The prices are NJ Transit's 2026 rail fare tables in `data/fares/source/`. One PDF is titled **Rail Fares 2026** (New York Penn Station, dated 2026-05-01). The Hoboken, Newark Penn, and Atlantic City PDFs are titled **Rail Proposed Fares 2026** (dated 2026-04-22). Each fare row records that title, status, date, and SHA-256. The adjusted-fares page links all four as the charts effective July 1, 2026.
 
 Fares are fixed. There is no peak or off-peak price, so the feed has no `timeframes.txt`.
 
-### Zone areas
+### One area per stop
 
-Stations that share one price from every terminal chart that lists them share one area, in the same way MBTA groups commuter-rail stations into `area_commuter_rail_zone_*`. `fare_leg_rules.txt` is keyed by `network_id` `njt_rail` plus `from_area_id` / `to_area_id`.
-
-A single NJ Transit zone number is not one area. Zone 14 on the New York chart contains both Newark-division stations (New Brunswick) and Hoboken-division stations (Morristown), and those groups have different prices from Newark and from Hoboken. Areas are split on that signature: `njt_zone_14_newark_div` and `njt_zone_14_hoboken_div`. Stations whose chart row is an exception (Suffern/Mahwah, Princeton, the Pascack Valley overrides, and the same kind of row) get their own area, the same idea as MBTA's Zone 1A variants. New York Penn, Hoboken, and Newark Penn are terminal areas. The Atlantic City Rail Line table has no zone column, so each of its stations is its own area and the file is the full station-pair matrix.
+A stop has one `zone_id`. NJ Transit's printed zone number is not a fare: the same zone on the New York chart and the Hoboken chart is a different price, and an intermediate trip (Metropark to New Brunswick) is not the terminal price of either stop. Each priced GTFS stop is therefore its own area, `njt_stop_{stop_id}`, named with the stop name. Both Secaucus platforms share `njt_secaucus`. `fare_leg_rules.txt` is keyed by `network_id` `njt_rail` plus `from_area_id` / `to_area_id` for each priced pair.
 
 `stops.zone_id` for a priced rail stop is that area id. Upstream `zone_id` values are internal ids (light rail stops share one of them) and are left in place for stops this table does not price. Fares v1 `fare_rules.txt` uses those area ids as `origin_id` and `destination_id`. v1 publishes the adult one-way price only, with `payment_method` 1 and an empty `transfers` field so the fare is the origin-to-destination ticket rather than a per-leg add-on.
 
@@ -48,27 +46,22 @@ For each priced pair the feed includes:
 
 The one-way ticket media is the NJ TRANSIT app or vending machine (same price). Round-trip amounts are kept in `data/fares/fares.csv` and are not leg products: a GTFS leg is one way, and several exception round trips are not twice the one-way fare.
 
-`fare_leg_join_rules.txt` joins any two `njt_rail` legs that meet at the same stop. A New York–Secaucus–Trenton ride is then priced as New York to zone 22 when both ends are in the table. There is no separate transfer charge in these charts, so there is no `fare_transfer_rules.txt`.
+`fare_leg_join_rules.txt` joins any two `njt_rail` legs that meet at the same stop. A New York–Secaucus–Trenton ride is then priced as New York to Trenton when that pair is in the table. There is no separate transfer charge in these charts, so there is no `fare_transfer_rules.txt`.
 
 ### Coverage and gaps
 
-Priced stops are the heavy-rail stations on the New York, Hoboken, Newark, and Atlantic City charts, matched to `stop_id`s from the public rail GTFS (`https://www.njtransit.com/rail_data.zip`, stops dated 2026-11-19). Secaucus upper and lower level share zone 1.
+Priced stops are the heavy-rail stations in the public rail GTFS (`https://www.njtransit.com/rail_data.zip`, stops dated 2026-11-19) that the charts or the trip planner price. Secaucus upper and lower level share one area.
 
-Not priced, and listed in `data/fares/gaps.csv`:
+Same-line pairs, plus Hoboken to Newark-division stops and Newark Penn to Hoboken-division stops, are filled from `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`). The query, variables, and the other website calls are in `docs/njtransit-web-endpoints.md`. Where a PDF row and the site disagree, the PDF row is kept. `data/fares/planner_mismatches.csv` lists the differences. The published New York one-way prices match the site except Nanuet, Pearl River, and Spring Valley (chart $19.75, site $11.55). The three Proposed charts do not match the site's one-way prices. A `$0.00` pass on the site is stored as blank, not as a free fare.
 
-- Port Jervis Line stations beyond Suffern (Port Jervis, Otisville, Middletown NY, Campbell Hall, Salisbury Mills, Harriman, Tuxedo, Sloatsburg). The charts say those Metro-North fares are in tables 8 and 10, which are not in these PDFs.
-- Newark Airport railroad station.
-- Meadowlands Rail Station.
-- Kingsland and Monmouth Park are printed on the charts and are not in the current rail GTFS.
-
-Pairs that are not on a terminal chart are omitted rather than estimated. That includes most intermediate trips (Metropark to New Brunswick) and cross-division terminal trips that are not printed (Hoboken to Trenton). Hoboken to Newark Penn is the explicit $4.20 exception. A joined trip only gets a fare when that origin area and destination area are both in the table.
+The planner refuses transfers to the Atlantic City Rail Line, and it returned no fare for Meadowlands. Those stay in `gaps.csv` with Kingsland and Monmouth Park, which are on a chart and absent from the rail GTFS. Port Jervis Line stations beyond Suffern stay unpriced: the charts point at Metro-North tables that are not in these PDFs.
 
 Refresh the CSVs after replacing a PDF:
 
 ```bash
 python3 scripts/refresh_fares.py
-# optional, to rematch stop_id values from a public rail GTFS zip:
-python3 scripts/refresh_fares.py --gtfs rail_data.zip
+# rematch stop ids, then fill same-line pairs from the trip planner (about one request per second):
+python3 scripts/refresh_fares.py --gtfs rail_data.zip --planner
 ```
 
 The script needs `pdfminer.six`. It does not call the RailData API.

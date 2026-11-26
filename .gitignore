@@ -9,3 +9,6 @@ token-cache.json
 *.pdf
 # Official rail fare tables are checked-in source data, not captured API payloads.
 !data/fares/source/*.pdf
+# Resumable trip-planner responses. Derived fares.csv is what gets committed.
+data/fares/planner_cache/
+.playwright-mcp/

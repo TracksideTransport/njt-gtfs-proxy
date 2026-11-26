@@ -28,9 +28,15 @@ SHA-256 of each PDF is stored on every fare row (`source_sha256`), with the titl
 
 Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-trip, weekly, FlexPass, monthly, and school monthly.
 
+## Trip planner
+
+`--planner` calls `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`) for same-line station pairs and for Hoboken↔Newark-division pairs the PDFs do not print. Responses are cached under `planner_cache/` (gitignored) and the job resumes. A pair the planner cannot price is left out. Where the planner and a PDF row differ, the PDF row is kept and the difference is written to `planner_mismatches.csv`. Planner rows use `source_status` `live` and `source_date` of the fetch.
+
+Each priced stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
+
 Rebuild:
 
 ```bash
 python3 scripts/refresh_fares.py
-python3 scripts/refresh_fares.py --gtfs /path/to/rail_data.zip
+python3 scripts/refresh_fares.py --gtfs /path/to/rail_data.zip --planner
 ```

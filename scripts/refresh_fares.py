@@ -18,6 +18,7 @@ refresh ``rail_stops.csv``. Without it, the checked-in directory is reused.
 Usage:
     python3 scripts/refresh_fares.py
     python3 scripts/refresh_fares.py --gtfs /path/to/rail_data.zip
+    python3 scripts/refresh_fares.py --planner --gtfs /path/to/rail_data.zip
 """
 
 from __future__ import annotations
@@ -670,6 +671,22 @@ def main() -> int:
         type=Path,
         help="Public NJT rail GTFS zip. Refreshes data/fares/rail_stops.csv.",
     )
+    parser.add_argument(
+        "--planner",
+        action="store_true",
+        help="After the PDF tables, fill same-line and gap pairs from the njtransit.com trip planner.",
+    )
+    parser.add_argument(
+        "--planner-limit",
+        type=int,
+        default=0,
+        help="With --planner, fetch at most this many station-code pairs.",
+    )
+    parser.add_argument(
+        "--planner-dry-run",
+        action="store_true",
+        help="With --planner, print pair counts and exit before any fare request.",
+    )
     args = parser.parse_args()
     stops_path = OUT / "rail_stops.csv"
     if args.gtfs:
@@ -1071,6 +1088,14 @@ def main() -> int:
         gaps,
     )
     check_goldens(fare_rows, station_rows)
+    if args.planner:
+        if args.gtfs is None:
+            raise SystemExit("--planner needs --gtfs so same-line pairs come from the rail zip")
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import planner_fares
+
+        planner_fares.run(args.gtfs, limit=args.planner_limit, dry_run=args.planner_dry_run)
+        return 0
     print(
         f"fares={len(fare_rows)} stations={len(station_rows)} "
         f"areas={len({row['area_id'] for row in station_rows})} gaps={len(gaps)} "

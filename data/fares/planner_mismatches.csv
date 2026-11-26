@@ -1,0 +1,405 @@
+origin_stop_id,destination_stop_id,origin_name,destination_name,field,pdf_value,planner_value,pdf_source_status,pdf_source_file
+49,63,GLADSTONE,HOBOKEN,adult_ow,14.60,19.50,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,reduced_ow,6.55,8.95,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,ten_trip,146.00,195.00,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,weekly,123.50,167.50,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,flexpass,248.20,331.50,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,monthly,408.00,548.00,proposed,hoboken.pdf
+49,63,GLADSTONE,HOBOKEN,school_monthly,305.00,410.00,proposed,hoboken.pdf
+114,63,PARK RIDGE,HOBOKEN,reduced_ow,4.75,4.35,proposed,hoboken.pdf
+114,63,PARK RIDGE,HOBOKEN,weekly,82.75,82.50,proposed,hoboken.pdf
+114,63,PARK RIDGE,HOBOKEN,flexpass,165.60,165.75,proposed,hoboken.pdf
+28,43298,CHERRY HILL,PENNSAUKEN TRANSIT CENTER,ten_trip,,18.00,proposed,atlantic-city.pdf
+63,91,HOBOKEN,MORRIS PLAINS,adult_ow,14.30,18.25,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,reduced_ow,6.20,8.20,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,ten_trip,143.00,182.50,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,weekly,119.00,161.50,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,flexpass,243.10,310.25,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,monthly,396.00,531.00,proposed,hoboken.pdf
+63,91,HOBOKEN,MORRIS PLAINS,school_monthly,297.00,398.00,proposed,hoboken.pdf
+28,55,CHERRY HILL,HAMMONTON,ten_trip,,57.50,proposed,atlantic-city.pdf
+105,114,NEW YORK PENN STATION,PARK RIDGE,flexpass,196.45,196.35,published,ny-penn.pdf
+105,157,NEW YORK PENN STATION,WHITE HOUSE,monthly,549.00,548.00,published,ny-penn.pdf
+38081,63,MSU,HOBOKEN,adult_ow,7.85,9.40,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,reduced_ow,3.65,4.25,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,ten_trip,78.50,94.00,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,weekly,66.00,82.50,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,flexpass,133.45,159.80,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,monthly,222.00,276.00,proposed,hoboken.pdf
+38081,63,MSU,HOBOKEN,school_monthly,165.00,206.00,proposed,hoboken.pdf
+105,73,NEW YORK PENN STATION,LITTLE SILVER,monthly,549.00,548.00,published,ny-penn.pdf
+105,147,NEW YORK PENN STATION,TOWACO,weekly,123.50,123.00,published,ny-penn.pdf
+10,9,ATLANTIC CITY,ATCO,ten_trip,,60.50,proposed,atlantic-city.pdf
+55,9,HAMMONTON,ATCO,ten_trip,,18.00,proposed,atlantic-city.pdf
+28,39,CHERRY HILL,EGG HARBOR,ten_trip,,78.50,proposed,atlantic-city.pdf
+63,94,HOBOKEN,MOUNT TABOR,adult_ow,14.30,18.25,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,reduced_ow,6.20,8.20,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,ten_trip,143.00,182.50,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,weekly,119.00,161.50,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,flexpass,243.10,310.25,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,monthly,396.00,531.00,proposed,hoboken.pdf
+63,94,HOBOKEN,MOUNT TABOR,school_monthly,297.00,398.00,proposed,hoboken.pdf
+39,43298,EGG HARBOR,PENNSAUKEN TRANSIT CENTER,ten_trip,,78.50,proposed,atlantic-city.pdf
+1,55,30TH ST. PHL.,HAMMONTON,ten_trip,,97.00,proposed,atlantic-city.pdf
+105,144,NEW YORK PENN STATION,SUFFERN,flexpass,251.65,251.60,published,ny-penn.pdf
+107,32905,NEWARK PENN STATION,HAMILTON,weekly,123.50,123.00,proposed,newark-penn.pdf
+105,54,NEW YORK PENN STATION,HACKETTSTOWN,monthly,549.00,548.00,published,ny-penn.pdf
+2,55,ABSECON,HAMMONTON,ten_trip,,48.00,proposed,atlantic-city.pdf
+105,40,NEW YORK PENN STATION,ELBERON,weekly,171.50,171.00,published,ny-penn.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,adult_ow,4.20,5.05,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,reduced_ow,1.90,2.25,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,ten_trip,42.00,50.50,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,weekly,36.50,46.00,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,flexpass,71.40,85.85,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,monthly,117.00,152.00,proposed,hoboken.pdf
+106,63,NEWARK BROAD ST,HOBOKEN,school_monthly,87.00,115.00,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,adult_ow,14.60,9.75,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,reduced_ow,6.55,4.75,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,ten_trip,146.00,92.50,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,weekly,123.50,82.75,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,flexpass,248.20,165.75,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,monthly,408.00,267.00,proposed,hoboken.pdf
+118,63,PEARL RIVER,HOBOKEN,school_monthly,305.00,200.00,proposed,hoboken.pdf
+10,39,ATLANTIC CITY,EGG HARBOR,ten_trip,,42.00,proposed,atlantic-city.pdf
+63,93,HOBOKEN,MOUNT OLIVE,weekly,123.50,123.00,proposed,hoboken.pdf
+105,74,NEW YORK PENN STATION,LONG BRANCH,weekly,171.50,171.00,published,ny-penn.pdf
+1,9,30TH ST. PHL.,ATCO,ten_trip,,84.50,proposed,atlantic-city.pdf
+105,62,NEW YORK PENN STATION,HILLSDALE,flexpass,196.45,196.35,published,ny-penn.pdf
+105,108,NEW YORK PENN STATION,NORTH BRANCH,monthly,549.00,548.00,published,ny-penn.pdf
+105,120,NEW YORK PENN STATION,PLAINFIELD,weekly,123.50,123.00,published,ny-penn.pdf
+39,71,EGG HARBOR,LINDENWOLD,ten_trip,,50.50,proposed,atlantic-city.pdf
+105,84,NEW YORK PENN STATION,METUCHEN,weekly,123.50,123.00,published,ny-penn.pdf
+105,8,NEW YORK PENN STATION,ASBURY PARK,weekly,171.50,171.00,published,ny-penn.pdf
+43298,71,PENNSAUKEN TRANSIT CENTER,LINDENWOLD,ten_trip,,24.00,proposed,atlantic-city.pdf
+10,71,ATLANTIC CITY,LINDENWOLD,ten_trip,,63.00,proposed,atlantic-city.pdf
+105,90,NEW YORK PENN STATION,MONTVALE,flexpass,196.45,196.35,published,ny-penn.pdf
+28,9,CHERRY HILL,ATCO,ten_trip,,42.00,proposed,atlantic-city.pdf
+105,156,NEW YORK PENN STATION,WESTWOOD,flexpass,196.45,196.35,published,ny-penn.pdf
+105,4,NEW YORK PENN STATION,ALLENHURST,weekly,171.50,171.00,published,ny-penn.pdf
+63,67,HOBOKEN,LAKE HOPATCONG,weekly,123.50,123.00,proposed,hoboken.pdf
+1,71,30TH ST. PHL.,LINDENWOLD,ten_trip,,63.00,proposed,atlantic-city.pdf
+1,39,30TH ST. PHL.,EGG HARBOR,ten_trip,,124.50,proposed,atlantic-city.pdf
+1,39,30TH ST. PHL.,EGG HARBOR,monthly,343.00,342.00,proposed,atlantic-city.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,adult_ow,6.60,8.75,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,reduced_ow,2.90,3.90,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,ten_trip,66.00,87.50,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,weekly,62.00,78.50,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,flexpass,112.20,148.75,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,monthly,206.00,255.00,proposed,hoboken.pdf
+150,63,UPPER MONTCLAIR,HOBOKEN,school_monthly,155.00,191.00,proposed,hoboken.pdf
+100,105,NANUET,NEW YORK PENN STATION,adult_ow,19.75,11.55,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,reduced_ow,8.95,5.65,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,ten_trip,197.50,110.50,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,weekly,171.50,100.75,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,flexpass,335.75,196.35,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,monthly,563.00,333.00,published,ny-penn.pdf
+100,105,NANUET,NEW YORK PENN STATION,school_monthly,422.00,250.00,published,ny-penn.pdf
+63,87,HOBOKEN,MILLBURN,adult_ow,9.10,10.30,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,reduced_ow,4.25,4.55,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,ten_trip,91.00,103.00,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,weekly,78.50,93.50,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,flexpass,154.70,175.10,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,monthly,255.00,309.00,proposed,hoboken.pdf
+63,87,HOBOKEN,MILLBURN,school_monthly,191.00,231.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,adult_ow,13.35,17.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,reduced_ow,5.90,7.55,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,ten_trip,133.50,170.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,weekly,117.50,146.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,flexpass,226.95,289.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,monthly,385.00,477.00,proposed,hoboken.pdf
+63,88,HOBOKEN,MILLINGTON,school_monthly,289.00,359.00,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,adult_ow,11.80,13.05,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,reduced_ow,5.30,5.90,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,ten_trip,118.00,130.50,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,weekly,99.50,112.50,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,flexpass,200.60,221.85,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,monthly,328.00,376.00,proposed,hoboken.pdf
+63,99,HOBOKEN,MURRAY HILL,school_monthly,247.00,283.00,proposed,hoboken.pdf
+2,39,ABSECON,EGG HARBOR,ten_trip,,18.00,proposed,atlantic-city.pdf
+105,117,NEW YORK PENN STATION,PEAPACK,monthly,549.00,548.00,published,ny-penn.pdf
+1,2,30TH ST. PHL.,ABSECON,ten_trip,,124.50,proposed,atlantic-city.pdf
+1,2,30TH ST. PHL.,ABSECON,monthly,343.00,342.00,proposed,atlantic-city.pdf
+71,9,LINDENWOLD,ATCO,ten_trip,,18.00,proposed,atlantic-city.pdf
+117,63,PEAPACK,HOBOKEN,adult_ow,14.60,19.50,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,reduced_ow,6.55,8.95,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,ten_trip,146.00,195.00,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,weekly,123.50,167.50,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,flexpass,248.20,331.50,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,monthly,408.00,548.00,proposed,hoboken.pdf
+117,63,PEAPACK,HOBOKEN,school_monthly,305.00,410.00,proposed,hoboken.pdf
+10,2,ATLANTIC CITY,ABSECON,ten_trip,,18.00,proposed,atlantic-city.pdf
+62,63,HILLSDALE,HOBOKEN,flexpass,165.60,165.75,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,adult_ow,14.30,18.50,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,reduced_ow,6.20,8.60,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,ten_trip,143.00,185.00,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,weekly,119.00,164.00,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,flexpass,243.10,314.50,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,monthly,396.00,541.00,proposed,hoboken.pdf
+35,63,DOVER,HOBOKEN,school_monthly,297.00,406.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,adult_ow,13.35,17.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,reduced_ow,5.90,7.55,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,ten_trip,133.50,170.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,weekly,117.50,146.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,flexpass,226.95,289.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,monthly,385.00,477.00,proposed,hoboken.pdf
+63,76,HOBOKEN,LYONS,school_monthly,289.00,359.00,proposed,hoboken.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,adult_ow,4.20,5.05,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,reduced_ow,1.90,2.25,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,ten_trip,42.00,50.50,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,weekly,36.50,46.00,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,flexpass,71.40,85.85,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,monthly,117.00,152.00,proposed,newark-penn.pdf
+107,63,NEWARK PENN STATION,HOBOKEN,school_monthly,87.00,115.00,proposed,newark-penn.pdf
+105,52,NEW YORK PENN STATION,GLEN ROCK MAIN LINE,school_monthly,247.00,246.00,published,ny-penn.pdf
+10,55,ATLANTIC CITY,HAMMONTON,ten_trip,,60.50,proposed,atlantic-city.pdf
+105,68,NEW YORK PENN STATION,LEBANON,weekly,171.50,171.00,published,ny-penn.pdf
+39472,63,MOUNT ARLINGTON,HOBOKEN,weekly,123.50,123.00,proposed,hoboken.pdf
+107,60,NEWARK PENN STATION,HIGH BRIDGE,weekly,123.50,123.00,proposed,newark-penn.pdf
+107,40,NEWARK PENN STATION,ELBERON,weekly,123.50,123.00,proposed,newark-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,adult_ow,19.75,11.55,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,reduced_ow,8.95,5.65,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,ten_trip,197.50,110.50,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,weekly,171.50,100.75,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,flexpass,335.75,196.35,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,monthly,563.00,333.00,published,ny-penn.pdf
+105,118,NEW YORK PENN STATION,PEARL RIVER,school_monthly,422.00,250.00,published,ny-penn.pdf
+152,63,WALNUT STREET,HOBOKEN,adult_ow,6.60,8.75,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,reduced_ow,2.90,3.90,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,ten_trip,66.00,87.50,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,weekly,62.00,78.50,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,flexpass,112.20,148.75,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,monthly,206.00,255.00,proposed,hoboken.pdf
+152,63,WALNUT STREET,HOBOKEN,school_monthly,155.00,191.00,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,adult_ow,6.60,8.75,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,reduced_ow,2.90,3.90,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,ten_trip,66.00,87.50,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,weekly,62.00,78.50,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,flexpass,112.20,148.75,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,monthly,206.00,255.00,proposed,hoboken.pdf
+153,63,WATCHUNG AVENUE,HOBOKEN,school_monthly,155.00,191.00,proposed,hoboken.pdf
+105,49,NEW YORK PENN STATION,GLADSTONE,monthly,549.00,548.00,published,ny-penn.pdf
+105,3,NEW YORK PENN STATION,ALLENDALE,weekly,123.50,123.00,published,ny-penn.pdf
+142,63,SPRING VALLEY,HOBOKEN,adult_ow,14.60,9.75,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,reduced_ow,6.55,4.75,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,ten_trip,146.00,92.50,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,weekly,123.50,82.75,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,flexpass,248.20,165.75,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,monthly,408.00,267.00,proposed,hoboken.pdf
+142,63,SPRING VALLEY,HOBOKEN,school_monthly,305.00,200.00,proposed,hoboken.pdf
+107,74,NEWARK PENN STATION,LONG BRANCH,weekly,123.50,123.00,proposed,newark-penn.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,adult_ow,7.85,9.40,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,reduced_ow,3.65,4.25,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,ten_trip,78.50,94.00,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,weekly,66.00,82.50,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,flexpass,133.45,159.80,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,monthly,222.00,276.00,proposed,hoboken.pdf
+63,95,HOBOKEN,MOUNTAIN AVENUE,school_monthly,165.00,206.00,proposed,hoboken.pdf
+105,67,NEW YORK PENN STATION,LAKE HOPATCONG,monthly,549.00,548.00,published,ny-penn.pdf
+10,28,ATLANTIC CITY,CHERRY HILL,ten_trip,,84.50,proposed,atlantic-city.pdf
+105,38417,NEW YORK PENN STATION,RAMSEY ROUTE 17 STATION,flexpass,251.65,251.60,published,ny-penn.pdf
+105,159,NEW YORK PENN STATION,WOODCLIFF LAKE,flexpass,196.45,196.35,published,ny-penn.pdf
+105,125,NEW YORK PENN STATION,PRINCETON JCT.,monthly,549.00,548.00,published,ny-penn.pdf
+63,92,HOBOKEN,MORRISTOWN,adult_ow,13.35,17.00,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,reduced_ow,5.90,7.55,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,ten_trip,133.50,170.00,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,weekly,117.50,146.00,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,flexpass,226.95,289.00,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,monthly,385.00,477.00,proposed,hoboken.pdf
+63,92,HOBOKEN,MORRISTOWN,school_monthly,289.00,359.00,proposed,hoboken.pdf
+103,107,NEW BRUNSWICK,NEWARK PENN STATION,school_monthly,247.00,246.00,proposed,newark-penn.pdf
+105,42,NEW YORK PENN STATION,EMERSON,school_monthly,247.00,246.00,published,ny-penn.pdf
+107,4,NEWARK PENN STATION,ALLENHURST,weekly,123.50,123.00,proposed,newark-penn.pdf
+63,77,HOBOKEN,MADISON,adult_ow,12.75,14.30,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,reduced_ow,5.90,6.55,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,ten_trip,127.50,143.00,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,weekly,109.50,123.00,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,flexpass,216.75,243.10,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,monthly,362.00,408.00,proposed,hoboken.pdf
+63,77,HOBOKEN,MADISON,school_monthly,271.00,305.00,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,adult_ow,6.60,8.75,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,reduced_ow,2.90,3.90,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,ten_trip,66.00,87.50,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,weekly,62.00,78.50,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,flexpass,112.20,148.75,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,monthly,206.00,255.00,proposed,hoboken.pdf
+140,63,SOUTH ORANGE,HOBOKEN,school_monthly,155.00,191.00,proposed,hoboken.pdf
+105,6,NEW YORK PENN STATION,ANNANDALE,weekly,171.50,171.00,published,ny-penn.pdf
+39,55,EGG HARBOR,HAMMONTON,ten_trip,,26.50,proposed,atlantic-city.pdf
+1,28,30TH ST. PHL.,CHERRY HILL,ten_trip,,50.50,proposed,atlantic-city.pdf
+55,71,HAMMONTON,LINDENWOLD,ten_trip,,36.50,proposed,atlantic-city.pdf
+18,63,BERNARDSVILLE,HOBOKEN,adult_ow,14.30,18.25,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,reduced_ow,6.20,8.20,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,ten_trip,143.00,182.50,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,weekly,119.00,161.50,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,flexpass,243.10,310.25,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,monthly,396.00,531.00,proposed,hoboken.pdf
+18,63,BERNARDSVILLE,HOBOKEN,school_monthly,297.00,398.00,proposed,hoboken.pdf
+105,77,NEW YORK PENN STATION,MADISON,weekly,123.50,123.00,published,ny-penn.pdf
+159,63,WOODCLIFF LAKE,HOBOKEN,reduced_ow,4.75,4.35,proposed,hoboken.pdf
+159,63,WOODCLIFF LAKE,HOBOKEN,weekly,82.75,82.50,proposed,hoboken.pdf
+159,63,WOODCLIFF LAKE,HOBOKEN,flexpass,165.60,165.75,proposed,hoboken.pdf
+63,69,HOBOKEN,LINCOLN PARK,school_monthly,247.00,246.00,proposed,hoboken.pdf
+107,32906,NEWARK PENN STATION,JERSEY AVE.,school_monthly,247.00,246.00,proposed,newark-penn.pdf
+48,63,GILLETTE,HOBOKEN,adult_ow,13.05,14.85,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,reduced_ow,5.90,6.90,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,ten_trip,130.50,148.50,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,weekly,112.50,130.00,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,flexpass,221.85,252.45,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,monthly,376.00,429.00,proposed,hoboken.pdf
+48,63,GILLETTE,HOBOKEN,school_monthly,283.00,322.00,proposed,hoboken.pdf
+105,78,NEW YORK PENN STATION,MAHWAH,flexpass,251.65,251.60,published,ny-penn.pdf
+45,63,FAR HILLS,HOBOKEN,adult_ow,14.30,18.50,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,reduced_ow,6.20,8.60,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,ten_trip,143.00,185.00,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,weekly,119.00,164.00,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,flexpass,243.10,314.50,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,monthly,396.00,541.00,proposed,hoboken.pdf
+45,63,FAR HILLS,HOBOKEN,school_monthly,297.00,406.00,proposed,hoboken.pdf
+10,43298,ATLANTIC CITY,PENNSAUKEN TRANSIT CENTER,ten_trip,,84.50,proposed,atlantic-city.pdf
+145,63,SUMMIT,HOBOKEN,adult_ow,10.95,11.80,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,reduced_ow,4.90,5.60,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,ten_trip,109.50,118.00,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,weekly,93.50,109.50,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,flexpass,186.15,200.60,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,monthly,309.00,362.00,proposed,hoboken.pdf
+145,63,SUMMIT,HOBOKEN,school_monthly,231.00,271.00,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,adult_ow,13.05,14.85,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,reduced_ow,5.90,6.90,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,ten_trip,130.50,148.50,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,weekly,112.50,130.00,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,flexpass,221.85,252.45,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,monthly,376.00,429.00,proposed,hoboken.pdf
+30,63,CONVENT,HOBOKEN,school_monthly,283.00,322.00,proposed,hoboken.pdf
+2,28,ABSECON,CHERRY HILL,ten_trip,,78.50,proposed,atlantic-city.pdf
+105,51,NEW YORK PENN STATION,GLEN ROCK BORO HALL,school_monthly,247.00,246.00,published,ny-penn.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,adult_ow,10.95,11.80,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,reduced_ow,4.90,5.60,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,ten_trip,109.50,118.00,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,weekly,93.50,109.50,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,flexpass,186.15,200.60,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,monthly,309.00,362.00,proposed,hoboken.pdf
+104,63,NEW PROVIDENCE,HOBOKEN,school_monthly,231.00,271.00,proposed,hoboken.pdf
+54,63,HACKETTSTOWN,HOBOKEN,weekly,123.50,123.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,adult_ow,13.35,17.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,reduced_ow,5.90,7.55,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,ten_trip,133.50,170.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,weekly,117.50,146.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,flexpass,226.95,289.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,monthly,385.00,477.00,proposed,hoboken.pdf
+143,63,STIRLING,HOBOKEN,school_monthly,289.00,359.00,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,adult_ow,7.85,9.40,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,reduced_ow,3.65,4.25,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,ten_trip,78.50,94.00,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,weekly,66.00,82.50,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,flexpass,133.45,159.80,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,monthly,222.00,276.00,proposed,hoboken.pdf
+63,89,HOBOKEN,MONTCLAIR HEIGHTS,school_monthly,165.00,206.00,proposed,hoboken.pdf
+105,39472,NEW YORK PENN STATION,MOUNT ARLINGTON,monthly,549.00,548.00,published,ny-penn.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,adult_ow,12.75,14.30,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,reduced_ow,5.90,6.55,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,ten_trip,127.50,143.00,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,weekly,109.50,123.00,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,flexpass,216.75,243.10,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,monthly,362.00,408.00,proposed,hoboken.pdf
+17,63,BERKELEY HEIGHTS,HOBOKEN,school_monthly,271.00,305.00,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,adult_ow,6.05,8.15,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,reduced_ow,2.90,3.65,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,ten_trip,60.50,81.50,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,weekly,53.00,67.00,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,flexpass,102.85,138.55,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,monthly,175.00,223.00,proposed,hoboken.pdf
+112,63,ORANGE,HOBOKEN,school_monthly,131.00,166.00,proposed,hoboken.pdf
+105,155,NEW YORK PENN STATION,WESTFIELD,school_monthly,247.00,246.00,published,ny-penn.pdf
+105,22,NEW YORK PENN STATION,BRADLEY BEACH,weekly,171.50,171.00,published,ny-penn.pdf
+43298,9,PENNSAUKEN TRANSIT CENTER,ATCO,ten_trip,,42.00,proposed,atlantic-city.pdf
+105,127,NEW YORK PENN STATION,RAHWAY,school_monthly,247.00,246.00,published,ny-penn.pdf
+136,63,SHORT HILLS,HOBOKEN,adult_ow,9.10,10.30,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,reduced_ow,4.25,4.55,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,ten_trip,91.00,103.00,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,weekly,78.50,93.50,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,flexpass,154.70,175.10,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,monthly,255.00,309.00,proposed,hoboken.pdf
+136,63,SHORT HILLS,HOBOKEN,school_monthly,191.00,231.00,proposed,hoboken.pdf
+105,17,NEW YORK PENN STATION,BERKELEY HEIGHTS,weekly,123.50,123.00,published,ny-penn.pdf
+101,63,NETCONG,HOBOKEN,weekly,123.50,123.00,proposed,hoboken.pdf
+2,43298,ABSECON,PENNSAUKEN TRANSIT CENTER,ten_trip,,78.50,proposed,atlantic-city.pdf
+63,90,HOBOKEN,MONTVALE,reduced_ow,4.75,4.35,proposed,hoboken.pdf
+63,90,HOBOKEN,MONTVALE,weekly,82.75,82.50,proposed,hoboken.pdf
+63,90,HOBOKEN,MONTVALE,flexpass,165.60,165.75,proposed,hoboken.pdf
+2,71,ABSECON,LINDENWOLD,ten_trip,,50.50,proposed,atlantic-city.pdf
+1,10,30TH ST. PHL.,ATLANTIC CITY,ten_trip,,130.50,proposed,atlantic-city.pdf
+107,21,NEWARK PENN STATION,BOUND BROOK,school_monthly,247.00,246.00,proposed,newark-penn.pdf
+34,63,DENVILLE,HOBOKEN,adult_ow,14.30,18.25,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,reduced_ow,6.20,8.20,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,ten_trip,143.00,182.50,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,weekly,119.00,161.50,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,flexpass,243.10,310.25,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,monthly,396.00,531.00,proposed,hoboken.pdf
+34,63,DENVILLE,HOBOKEN,school_monthly,297.00,398.00,proposed,hoboken.pdf
+156,63,WESTWOOD,HOBOKEN,flexpass,165.60,165.75,proposed,hoboken.pdf
+107,8,NEWARK PENN STATION,ASBURY PARK,weekly,123.50,123.00,proposed,newark-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,adult_ow,19.75,11.55,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,reduced_ow,8.95,5.65,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,ten_trip,197.50,110.50,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,weekly,171.50,100.75,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,flexpass,335.75,196.35,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,monthly,563.00,333.00,published,ny-penn.pdf
+105,142,NEW YORK PENN STATION,SPRING VALLEY,school_monthly,422.00,250.00,published,ny-penn.pdf
+23,63,BRICK CHURCH,HOBOKEN,adult_ow,6.05,8.15,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,reduced_ow,2.90,3.65,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,ten_trip,60.50,81.50,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,weekly,53.00,67.00,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,flexpass,102.85,138.55,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,monthly,175.00,223.00,proposed,hoboken.pdf
+23,63,BRICK CHURCH,HOBOKEN,school_monthly,131.00,166.00,proposed,hoboken.pdf
+105,32905,NEW YORK PENN STATION,HAMILTON,weekly,171.50,171.00,published,ny-penn.pdf
+107,6,NEWARK PENN STATION,ANNANDALE,weekly,123.50,123.00,proposed,newark-penn.pdf
+28,71,CHERRY HILL,LINDENWOLD,ten_trip,,24.00,proposed,atlantic-city.pdf
+12,63,BASKING RIDGE,HOBOKEN,adult_ow,14.30,18.25,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,reduced_ow,6.20,8.20,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,ten_trip,143.00,182.50,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,weekly,119.00,161.50,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,flexpass,243.10,310.25,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,monthly,396.00,531.00,proposed,hoboken.pdf
+12,63,BASKING RIDGE,HOBOKEN,school_monthly,297.00,398.00,proposed,hoboken.pdf
+107,68,NEWARK PENN STATION,LEBANON,weekly,123.50,123.00,proposed,newark-penn.pdf
+105,93,NEW YORK PENN STATION,MOUNT OLIVE,monthly,549.00,548.00,published,ny-penn.pdf
+105,47,NEW YORK PENN STATION,GARWOOD,school_monthly,247.00,246.00,published,ny-penn.pdf
+63,81,HOBOKEN,MAPLEWOOD,adult_ow,7.85,9.40,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,reduced_ow,3.65,4.25,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,ten_trip,78.50,94.00,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,weekly,66.00,82.50,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,flexpass,133.45,159.80,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,monthly,222.00,276.00,proposed,hoboken.pdf
+63,81,HOBOKEN,MAPLEWOOD,school_monthly,165.00,206.00,proposed,hoboken.pdf
+101,105,NETCONG,NEW YORK PENN STATION,monthly,549.00,548.00,published,ny-penn.pdf
+105,128,NEW YORK PENN STATION,RAMSEY,flexpass,251.65,251.60,published,ny-penn.pdf
+105,72,NEW YORK PENN STATION,LITTLE FALLS,school_monthly,247.00,246.00,published,ny-penn.pdf
+37,63,EAST ORANGE,HOBOKEN,adult_ow,6.05,8.15,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,reduced_ow,2.90,3.65,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,ten_trip,60.50,81.50,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,weekly,53.00,67.00,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,flexpass,102.85,138.55,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,monthly,175.00,223.00,proposed,hoboken.pdf
+37,63,EAST ORANGE,HOBOKEN,school_monthly,131.00,166.00,proposed,hoboken.pdf
+105,130,NEW YORK PENN STATION,RED BANK,monthly,549.00,548.00,published,ny-penn.pdf
+2,9,ABSECON,ATCO,ten_trip,,50.50,proposed,atlantic-city.pdf
+27,63,CHATHAM,HOBOKEN,adult_ow,11.80,13.05,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,reduced_ow,5.30,5.90,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,ten_trip,118.00,130.50,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,weekly,99.50,112.50,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,flexpass,200.60,221.85,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,monthly,328.00,376.00,proposed,hoboken.pdf
+27,63,CHATHAM,HOBOKEN,school_monthly,247.00,283.00,proposed,hoboken.pdf
+1,43298,30TH ST. PHL.,PENNSAUKEN TRANSIT CENTER,ten_trip,,50.50,proposed,atlantic-city.pdf
+105,60,NEW YORK PENN STATION,HIGH BRIDGE,weekly,171.50,171.00,published,ny-penn.pdf
+39,9,EGG HARBOR,ATCO,ten_trip,,45.00,proposed,atlantic-city.pdf
+107,22,NEWARK PENN STATION,BRADLEY BEACH,weekly,123.50,123.00,proposed,newark-penn.pdf
+43298,55,PENNSAUKEN TRANSIT CENTER,HAMMONTON,ten_trip,,57.50,proposed,atlantic-city.pdf
+100,63,NANUET,HOBOKEN,adult_ow,14.60,9.75,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,reduced_ow,6.55,4.75,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,ten_trip,146.00,92.50,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,weekly,123.50,82.75,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,flexpass,248.20,165.75,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,monthly,408.00,267.00,proposed,hoboken.pdf
+100,63,NANUET,HOBOKEN,school_monthly,305.00,200.00,proposed,hoboken.pdf

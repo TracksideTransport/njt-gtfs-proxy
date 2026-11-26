@@ -1,11 +1,16 @@
 //! NJ Transit rail fares added to the static GTFS zip.
 //!
 //! The checked-in tables in `data/fares/` come from NJ Transit's 2026 rail
-//! fare PDFs. [`augment_rail_gtfs`] copies those fares into a rail GTFS zip as
-//! Fares v2 files plus legacy Fares v1 `fare_attributes.txt` and
-//! `fare_rules.txt`. One-way prices do not vary by time of day, so the zip has
-//! no `timeframes.txt`. A transfer inside the rail network stays one
-//! origin-to-destination fare, expressed with `fare_leg_join_rules.txt`.
+//! fare PDFs, with same-line pairs the PDFs do not print filled from the
+//! njtransit.com trip planner. [`augment_rail_gtfs`] copies those fares into a
+//! rail GTFS zip as Fares v2 files plus legacy Fares v1 `fare_attributes.txt`
+//! and `fare_rules.txt`. Each priced stop is its own fare area, because an
+//! intermediate trip is not the terminal-zone price. One-way prices do not
+//! vary by time of day, so the zip has no `timeframes.txt`. A transfer inside
+//! the rail network stays one origin-to-destination fare, expressed with
+//! `fare_leg_join_rules.txt`. [`inherit_track_fare_areas`] copies a stop's
+//! area onto `{stop_id}:station` and `{stop_id}:track:{label}` after platform
+//! injection.
 //!
 //! # Examples
 //!
@@ -42,6 +47,11 @@ pub const FARE_HEADER_PASSTHROUGH: &str = "passthrough";
 
 /// Network id for NJ Transit heavy rail.
 const NETWORK_ID: &str = "njt_rail";
+
+/// Developer-feed short names that stay off the rail fare network.
+///
+/// The developer zip marks every route `route_type` 113, including light rail.
+const LIGHT_RAIL_SHORT_NAMES: &[&str] = &["HBLR", "NLR", "RVLN", "RVR"];
 
 /// Files replaced on each augment so an upstream fare draft cannot linger.
 const REPLACED_FILES: &[&str] = &[
@@ -145,6 +155,8 @@ struct Fare {
     monthly: String,
     /// School monthly amount.
     school_monthly: String,
+    /// `published`, `proposed`, or `live`.
+    source_status: String,
 }
 
 /// Fare area for one GTFS stop.
@@ -280,6 +292,7 @@ fn read_fares(text: &str) -> Result<Vec<Fare>, FareError> {
             flexpass: column(&headers, &record, "flexpass")?,
             monthly: column(&headers, &record, "monthly")?,
             school_monthly: column(&headers, &record, "school_monthly")?,
+            source_status: column(&headers, &record, "source_status")?,
         });
     }
     Ok(fares)
@@ -489,6 +502,172 @@ pub fn zip_has_fare_rules(zip_bytes: &[u8]) -> bool {
     };
     let found = archive.by_name("fare_rules.txt").is_ok();
     found
+}
+
+/// Copies each priced stop's fare area onto its platform parent and track children.
+///
+/// [`augment_rail_gtfs`] prices the original `stop_id`. Track injection then
+/// adds `{stop_id}:station` and `{stop_id}:track:{label}`. Those rows are not
+/// in `stop_areas.txt`. This pass adds them, and sets `zone_id` to the same
+/// area, so Fares v1 and v2 both see the platform.
+///
+/// # Arguments
+///
+/// * `zip_bytes` — A rail GTFS zip, after fare augmentation and track injection.
+///
+/// # Returns
+///
+/// The zip with platform rows added to `stop_areas.txt`. The input bytes when
+/// the body is not a zip, or it has no fare areas, or no platform ids.
+///
+/// # Errors
+///
+/// Returns [`FareError`] when `stops.txt` or `stop_areas.txt` is not CSV.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// A body that is not a zip is returned unchanged:
+///
+/// ```
+/// use njt_gtfs_proxy::inherit_track_fare_areas;
+///
+/// let body = b"not-a-zip";
+/// assert_eq!(inherit_track_fare_areas(body).expect("passthrough"), body);
+/// ```
+pub fn inherit_track_fare_areas(zip_bytes: &[u8]) -> Result<Vec<u8>, FareError> {
+    let mut archive = match ZipArchive::new(Cursor::new(zip_bytes)) {
+        Ok(archive) => archive,
+        Err(_) => return Ok(zip_bytes.to_vec()),
+    };
+    if archive.by_name("stop_areas.txt").is_err() || archive.by_name("stops.txt").is_err() {
+        return Ok(zip_bytes.to_vec());
+    }
+    let mut files = BTreeMap::new();
+    for index in 0..archive.len() {
+        let mut file = archive
+            .by_index(index)
+            .map_err(|err| FareError::new(err.to_string()))?;
+        let name = file
+            .enclosed_name()
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|| file.name().to_string());
+        if name.ends_with('/') {
+            continue;
+        }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)
+            .map_err(|err| FareError::new(err.to_string()))?;
+        files.insert(name, bytes);
+    }
+    let stops_bytes = files
+        .get("stops.txt")
+        .map(Vec::as_slice)
+        .ok_or_else(|| FareError::new("stops.txt disappeared while reading the zip"))?;
+    let areas_bytes = files
+        .get("stop_areas.txt")
+        .map(Vec::as_slice)
+        .ok_or_else(|| FareError::new("stop_areas.txt disappeared while reading the zip"))?;
+    let (stops_header, mut stop_rows) = read_table(stops_bytes, "stops.txt")?;
+    let (areas_header, mut area_rows) = read_table(areas_bytes, "stop_areas.txt")?;
+    let stop_id_column = stops_header
+        .iter()
+        .position(|name| name == "stop_id")
+        .ok_or_else(|| FareError::new("stops.txt has no stop_id column"))?;
+    let zone_column = stops_header.iter().position(|name| name == "zone_id");
+    let area_stop_column = areas_header
+        .iter()
+        .position(|name| name == "stop_id")
+        .ok_or_else(|| FareError::new("stop_areas.txt has no stop_id column"))?;
+    let area_id_column = areas_header
+        .iter()
+        .position(|name| name == "area_id")
+        .ok_or_else(|| FareError::new("stop_areas.txt has no area_id column"))?;
+    let mut area_by_stop: HashMap<String, String> = HashMap::new();
+    for row in &area_rows {
+        if let (Some(stop_id), Some(area_id)) = (row.get(area_stop_column), row.get(area_id_column))
+        {
+            area_by_stop.insert(stop_id.clone(), area_id.clone());
+        }
+    }
+    let mut changed = false;
+    for row in &mut stop_rows {
+        let Some(stop_id) = row.get(stop_id_column).cloned() else {
+            continue;
+        };
+        let Some(base) = fare_base_stop(&stop_id) else {
+            continue;
+        };
+        let Some(area_id) = area_by_stop.get(base).cloned() else {
+            continue;
+        };
+        if let Some(column) = zone_column {
+            if row.get(column).is_none_or(|zone| zone != &area_id) {
+                if row.len() <= column {
+                    row.resize(column + 1, String::new());
+                }
+                row[column].clone_from(&area_id);
+                changed = true;
+            }
+        }
+        if !area_by_stop.contains_key(&stop_id) {
+            let mut area_row = vec![String::new(); areas_header.len().max(area_id_column + 1)];
+            area_row[area_stop_column].clone_from(&stop_id);
+            area_row[area_id_column].clone_from(&area_id);
+            area_by_stop.insert(stop_id, area_id);
+            area_rows.push(area_row);
+            changed = true;
+        }
+    }
+    if !changed {
+        return Ok(zip_bytes.to_vec());
+    }
+    let header_refs: Vec<&str> = stops_header.iter().map(String::as_str).collect();
+    files.insert(
+        "stops.txt".to_string(),
+        write_records(&header_refs, stop_rows)?,
+    );
+    let area_refs: Vec<&str> = areas_header.iter().map(String::as_str).collect();
+    files.insert(
+        "stop_areas.txt".to_string(),
+        write_records(&area_refs, area_rows)?,
+    );
+    write_zip(&files)
+}
+
+/// Returns the priced stop id behind a platform parent or track child.
+///
+/// # Arguments
+///
+/// * `stop_id` — A `stops.stop_id`, possibly `{id}:station` or `{id}:track:{label}`.
+///
+/// # Returns
+///
+/// The original stop id, or `None` when this id is not a platform row.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn fare_base_stop(stop_id: &str) -> Option<&str> {
+    if let Some(base) = stop_id.strip_suffix(":station") {
+        return Some(base);
+    }
+    stop_id.split_once(":track:").map(|(base, _)| base)
 }
 
 /// Generated fare files plus the rewritten stop table.
@@ -1175,7 +1354,11 @@ fn fare_rules(products: &[Product]) -> Result<Vec<u8>, FareError> {
     write_records(&["fare_id", "origin_id", "destination_id"], rows)
 }
 
-/// Route rows for heavy rail (`route_type` 2).
+/// Route rows for heavy rail.
+///
+/// The public rail zip uses `route_type` 2. The developer zip uses 113 for
+/// every route, including light rail, so 113 is linked only when
+/// `route_short_name` is not HBLR, NLR, RVLN, or RVR.
 ///
 /// # Arguments
 ///
@@ -1216,12 +1399,20 @@ fn rail_route_rows(routes_txt: Option<&[u8]>) -> Result<Vec<Vec<String>>, FareEr
         .iter()
         .position(|name| name == "route_type")
         .ok_or_else(|| FareError::new("routes.txt has no route_type column"))?;
+    let short_column = header
+        .iter()
+        .position(|name| name == "route_short_name");
     let mut linked = Vec::new();
     for row in rows {
-        if row
-            .get(type_column)
-            .is_some_and(|route_type| route_type == "2")
-        {
+        let route_type = row.get(type_column).map(String::as_str).unwrap_or("");
+        let heavy = match route_type {
+            "2" => true,
+            "113" => short_column
+                .and_then(|column| row.get(column))
+                .is_none_or(|name| !LIGHT_RAIL_SHORT_NAMES.contains(&name.as_str())),
+            _ => false,
+        };
+        if heavy {
             if let Some(route_id) = row.get(id_column) {
                 linked.push(vec![NETWORK_ID.to_string(), route_id.to_string()]);
             }
@@ -1383,7 +1574,7 @@ mod tests {
         );
         files.insert(
             "routes.txt".to_string(),
-            b"route_id,route_short_name,route_type\n10,NEC,2\n4,HBLR,0\n".to_vec(),
+            b"route_id,route_short_name,route_type\n10,NEC,2\n4,HBLR,0\n11,NEC,113\n17,RVLN,113\n".to_vec(),
         );
         write_zip(&files).expect("sample zip")
     }
@@ -1404,53 +1595,93 @@ mod tests {
     }
 
     #[test]
-    fn ny_to_trenton_is_zone_pair_and_light_rail_is_untouched() {
+    fn ny_to_trenton_is_a_station_pair_and_light_rail_is_untouched() {
         let augmented = augment_rail_gtfs(&sample_zip()).expect("augment");
         assert!(augmented.fares_added);
         let stops = read_named(&augmented.bytes, "stops.txt");
-        assert!(stops.contains("105,NEW YORK PENN STATION,njt_nyp"));
-        assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_zone_22"));
-        assert!(stops.contains("63,HOBOKEN,njt_hoboken"));
+        assert!(stops.contains("105,NEW YORK PENN STATION,njt_stop_105"));
+        assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_stop_148"));
+        assert!(stops.contains("63,HOBOKEN,njt_stop_63"));
         assert!(stops.contains("6900,MILITARY PARK LIGHT RAIL STATION,336"));
         let rules = read_named(&augmented.bytes, "fare_rules.txt");
-        assert!(rules.contains("ow_adult_njt_nyp_njt_zone_22,njt_nyp,njt_zone_22"));
-        assert!(rules.contains("ow_adult_njt_nyp_njt_zone_22,njt_zone_22,njt_nyp"));
-        assert!(!rules.contains("njt_nyp,njt_hoboken"));
+        assert!(rules.contains(
+            "ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"
+        ));
+        assert!(rules.contains(
+            "ow_adult_njt_stop_105_njt_stop_148,njt_stop_148,njt_stop_105"
+        ));
+        assert!(!rules.contains("njt_stop_105,njt_stop_63"));
         let attributes = read_named(&augmented.bytes, "fare_attributes.txt");
-        assert!(attributes.contains("ow_adult_njt_nyp_njt_zone_22,20.35,USD,1,"));
+        assert!(attributes.contains("ow_adult_njt_stop_105_njt_stop_148,20.35,USD,1,"));
         let areas = read_named(&augmented.bytes, "areas.txt");
-        assert!(areas.contains("njt_zone_22,Rail zone 22"));
+        assert!(areas.contains("njt_stop_148,TRENTON TRANSIT CENTER"));
         let routes = read_named(&augmented.bytes, "route_networks.txt");
         assert!(routes.contains("njt_rail,10"));
+        assert!(routes.contains("njt_rail,11"));
         assert!(!routes.contains(",4"));
+        assert!(!routes.contains(",17"));
         let join = read_named(&augmented.bytes, "fare_leg_join_rules.txt");
         assert!(join.contains("njt_rail,njt_rail"));
         let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
-        assert!(leg.contains("ow_senior_njt_nyp_njt_zone_22"));
-        assert!(leg.contains("monthly_njt_nyp_njt_zone_22"));
+        assert!(leg.contains("ow_senior_njt_stop_105_njt_stop_148"));
+        assert!(leg.contains("monthly_njt_stop_105_njt_stop_148"));
         assert!(!leg.contains("timeframe"));
         let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
         assert!(!stop_areas.contains("6900,"));
     }
 
     #[test]
-    fn suffern_exception_is_not_the_zone_price_and_airport_is_absent() {
+    fn suffern_keeps_the_printed_exception_and_airport_comes_from_the_planner() {
         let catalog = catalog();
         let suffern = catalog
             .fares
             .iter()
             .find(|fare| {
-                fare.origin_area_id == "njt_nyp"
-                    && fare.destination_area_id == "njt_exc_mahwah_suffern"
+                fare.origin_area_id == "njt_stop_105"
+                    && fare.destination_area_id == "njt_stop_144"
             })
             .expect("suffern");
         assert_eq!(suffern.adult_ow, "14.80");
-        assert_eq!(suffern.adult_ow, "14.80");
         assert_ne!(suffern.monthly, "477.00");
-        assert!(catalog
-            .stations
-            .values()
-            .all(|station| station.stop_id != "37953"));
+        assert_eq!(suffern.source_status, "published");
+        let airport = catalog
+            .fares
+            .iter()
+            .find(|fare| {
+                fare.origin_area_id == "njt_stop_105"
+                    && fare.destination_area_id == "njt_stop_37953"
+            })
+            .expect("airport");
+        assert_eq!(airport.adult_ow, "17.50");
+        assert_eq!(airport.weekly, "");
+        assert_eq!(airport.source_status, "live");
         assert!(catalog.stations.contains_key("105"));
+        assert!(catalog.stations.contains_key("37953"));
+    }
+
+    #[test]
+    fn track_children_inherit_the_station_fare_area() {
+        let augmented = augment_rail_gtfs(&sample_zip()).expect("augment");
+        let mut files = BTreeMap::new();
+        let mut archive = ZipArchive::new(Cursor::new(augmented.bytes.as_slice())).expect("zip");
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().to_string();
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).expect("read");
+            files.insert(name, bytes);
+        }
+        let mut stops = String::from_utf8(files.remove("stops.txt").expect("stops")).expect("utf8");
+        stops.push_str("105:station,NEW YORK PENN STATION,\n");
+        stops.push_str("105:track:1,NEW YORK PENN STATION,\n");
+        files.insert("stops.txt".to_string(), stops.into_bytes());
+        let zipped = write_zip(&files).expect("zip");
+        let inherited = inherit_track_fare_areas(&zipped).expect("inherit");
+        let stop_areas = read_named(&inherited, "stop_areas.txt");
+        assert!(stop_areas.contains("105:station,njt_stop_105"));
+        assert!(stop_areas.contains("105:track:1,njt_stop_105"));
+        let stops = read_named(&inherited, "stops.txt");
+        assert!(stops.contains("105:station,NEW YORK PENN STATION,njt_stop_105"));
+        assert!(stops.contains("105:track:1,NEW YORK PENN STATION,njt_stop_105"));
     }
 }

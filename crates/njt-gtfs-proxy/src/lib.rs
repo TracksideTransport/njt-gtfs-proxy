@@ -63,7 +63,7 @@ pub mod http;
 
 pub use cache::FeedCache;
 pub use config::{Config, ConfigError};
-pub use fares::{augment_rail_gtfs, AugmentedGtfs, FareError};
+pub use fares::{augment_rail_gtfs, inherit_track_fare_areas, AugmentedGtfs, FareError};
 pub use http::ACCESS_KEY_HEADER;
 
 use std::net::SocketAddr;
