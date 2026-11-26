@@ -6,7 +6,7 @@ These files are the NJ Transit rail fares added to `GET /rail/gtfs.zip`. They ar
 
 `source/` holds the four official 2026 tables and the `pdftotext -layout` text beside each one. The text is for review. `scripts/refresh_fares.py` reads the PDF cell grid with pdfminer, not the text extract.
 
-| File | PDF title | Status recorded on each row | PDF date | What it prices |
+| File | PDF title | Status when the planner has no price | PDF date | What it prices |
 | --- | --- | --- | --- | --- |
 | `source/ny-penn.pdf` | Rail Fares 2026.xlsx | `published` | 2026-05-01 | Every listed station to and from New York Penn Station |
 | `source/hoboken.pdf` | Rail Proposed Fares 2026.xlsx | `proposed` | 2026-04-22 | Hoboken Division stations to and from Hoboken |
@@ -15,7 +15,7 @@ These files are the NJ Transit rail fares added to `GET /rail/gtfs.zip`. They ar
 
 The Hoboken and Newark charts say those fares continue to the other terminal via the Waterfront Connection. The only explicit Hoboken–Newark Penn price in the files is the $4.20 exception on the Newark chart. Other cross-division pairs are not invented from that sentence.
 
-SHA-256 of each PDF is stored on every fare row (`source_sha256`), with the title, status, and PDF date.
+A row the planner priced uses `source_status` `live` and an empty `source_sha256`. A row the planner could not price keeps the PDF title, status, date, and SHA-256.
 
 ## Generated tables
 
@@ -30,7 +30,7 @@ Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-tr
 
 ## Trip planner
 
-`--planner` calls `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`) for same-line station pairs and for Hoboken↔Newark-division pairs the PDFs do not print. Responses are cached under `planner_cache/` (gitignored) and the job resumes. A pair the planner cannot price is left out. Where the planner and a PDF row differ, the PDF row is kept and the difference is written to `planner_mismatches.csv`. Planner rows use `source_status` `live` and `source_date` of the fetch.
+`--planner` calls `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`) for same-line station pairs and for Hoboken↔Newark-division pairs. Responses are cached under `planner_cache/` (gitignored) and the job resumes. The planner price replaces the PDF. A blank or `0.00` planner field keeps the PDF amount for that field. A pair the planner cannot price keeps the PDF row. `planner_mismatches.csv` records every field where the two sources differ. It is an audit, not the published table.
 
 Each priced stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
 

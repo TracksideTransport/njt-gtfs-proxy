@@ -1,8 +1,8 @@
 //! NJ Transit rail fares added to the static GTFS zip.
 //!
-//! The checked-in tables in `data/fares/` come from NJ Transit's 2026 rail
-//! fare PDFs, with same-line pairs the PDFs do not print filled from the
-//! njtransit.com trip planner. [`augment_rail_gtfs`] copies those fares into a
+//! The checked-in tables in `data/fares/` prefer the njtransit.com trip
+//! planner. A 2026 fare PDF fills a pair or a field the planner does not
+//! price. [`augment_rail_gtfs`] copies those fares into a
 //! rail GTFS zip as Fares v2 files plus legacy Fares v1 `fare_attributes.txt`
 //! and `fare_rules.txt`. Each priced stop is its own fare area, because an
 //! intermediate trip is not the terminal-zone price. One-way prices do not
@@ -1627,7 +1627,7 @@ mod tests {
     }
 
     #[test]
-    fn suffern_keeps_the_printed_exception_and_airport_comes_from_the_planner() {
+    fn planner_price_replaces_the_chart_and_a_matching_exception_stays() {
         let catalog = catalog();
         let suffern = catalog
             .fares
@@ -1638,7 +1638,17 @@ mod tests {
             .expect("suffern");
         assert_eq!(suffern.adult_ow, "14.80");
         assert_ne!(suffern.monthly, "477.00");
-        assert_eq!(suffern.source_status, "published");
+        assert_eq!(suffern.source_status, "live");
+        let nanuet = catalog
+            .fares
+            .iter()
+            .find(|fare| {
+                fare.origin_area_id == "njt_stop_100" && fare.destination_area_id == "njt_stop_105"
+            })
+            .expect("nanuet");
+        assert_eq!(nanuet.adult_ow, "11.55");
+        assert_eq!(nanuet.reduced_ow, "5.65");
+        assert_eq!(nanuet.source_status, "live");
         let airport = catalog
             .fares
             .iter()

@@ -5,9 +5,12 @@ The train-to page loads fares from ``POST /api/graphql/graphql`` operation
 ``getSchedule``. This script calls that query directly. It does not use the
 RailData API.
 
-PDF rows stay authoritative. A planner amount replaces nothing when the PDF
-already prices that pair. Disagreements are written to
-``data/fares/planner_mismatches.csv``.
+The trip planner is authoritative. When it returns a price, that price
+replaces the PDF, including on a pair the PDF already lists. A blank or
+``0.00`` planner field keeps the PDF amount for that field. A pair the
+planner cannot price keeps the whole PDF row. Disagreements are still
+written to ``data/fares/planner_mismatches.csv`` as an audit; that file
+does not decide which amount is published.
 
 Cache lives in ``data/fares/planner_cache/`` so a run can resume. Requests are
 about one per second.
@@ -390,6 +393,33 @@ def blank_amounts() -> dict:
     return {field: "" for field in ("adult_ow", "reduced_ow", "adult_rt", "child_rt", *COMPARE_FIELDS[2:])}
 
 
+def overlay_planner(pdf_row: dict, fare: dict, fetched: str) -> tuple[dict, int]:
+    """Copy planner prices onto a PDF row.
+
+    A planner field that is blank or ``0.00`` leaves the PDF amount in place.
+    Round-trip columns stay on the PDF row because the fare card has no
+    round-trip price. The row's source becomes the trip planner, since that
+    is the authority for every field it did price.
+
+    Returns the merged row and how many amount fields changed.
+    """
+    row = dict(pdf_row)
+    changed = 0
+    for field in COMPARE_FIELDS:
+        planner_value = _blank_zero(fare.get(field, "") or "")
+        if not planner_value:
+            continue
+        if (row.get(field) or "") != planner_value:
+            changed += 1
+        row[field] = planner_value
+    row["source_file"] = GRAPHQL
+    row["source_title"] = SOURCE_TITLE
+    row["source_status"] = "live"
+    row["source_date"] = fetched
+    row["source_sha256"] = ""
+    return row, changed
+
+
 def planner_row(area_a: str, name_a: str, area_b: str, name_b: str, fare: dict, fetched: str) -> dict:
     left, right = ((area_a, name_a), (area_b, name_b)) if area_a <= area_b else ((area_b, name_b), (area_a, name_a))
     row = blank_amounts()
@@ -484,6 +514,7 @@ def run(gtfs_zip: Path, limit: int = 0, dry_run: bool = False) -> None:
     merged = dict(pdf_expanded)
     planner_added = 0
     checked = 0
+    fields_changed = 0
     for origin, dest, code_a, code_b in wanted:
         key = tuple(sorted((code_a, code_b)))
         fare = fares_by_code.get(key) or {}
@@ -508,6 +539,8 @@ def run(gtfs_zip: Path, limit: int = 0, dry_run: bool = False) -> None:
                         "pdf_source_file": pdf_expanded[area_key]["source_file"],
                     }
                 )
+            merged[area_key], changed = overlay_planner(pdf_expanded[area_key], fare, fetched_on)
+            fields_changed += changed
             continue
         if area_key in merged and merged[area_key]["source_title"] == SOURCE_TITLE:
             continue
@@ -598,6 +631,7 @@ def run(gtfs_zip: Path, limit: int = 0, dry_run: bool = False) -> None:
         pair_mismatches.add((row["origin_stop_id"], row["destination_stop_id"], row["pdf_source_status"]))
     print(
         f"planner_rows_added={planner_added} pdf_pairs_checked={checked} "
+        f"planner_fields_changed={fields_changed} "
         f"mismatch_fields={len(mismatches)} mismatch_pairs={len(pair_mismatches)} "
         f"by_pdf_status={dict(by_status)} fare_rows={len(rows)} gaps={len(gaps)}"
     )

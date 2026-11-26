@@ -19,6 +19,10 @@ Usage:
     python3 scripts/refresh_fares.py
     python3 scripts/refresh_fares.py --gtfs /path/to/rail_data.zip
     python3 scripts/refresh_fares.py --planner --gtfs /path/to/rail_data.zip
+
+``--planner`` then prefers the njtransit.com trip planner. A price the
+planner returns replaces the PDF. A blank or 0.00 planner field, and any
+pair the planner cannot price, keeps the PDF.
 """
 
 from __future__ import annotations
@@ -674,7 +678,7 @@ def main() -> int:
     parser.add_argument(
         "--planner",
         action="store_true",
-        help="After the PDF tables, fill same-line and gap pairs from the njtransit.com trip planner.",
+        help="After the PDF tables, apply trip-planner prices. The planner wins; a blank planner field keeps the PDF.",
     )
     parser.add_argument(
         "--planner-limit",
