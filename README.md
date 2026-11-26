@@ -277,6 +277,8 @@ These differ across NJ Transit's PDF, swagger, and developer-portal samples. The
 
 ## Development
 
+The trip-update types come from the `gtfs-realtime` crate, which compiles its `.proto` during the build. Install `protobuf-compiler` (`protoc`) first.
+
 ```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
