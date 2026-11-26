@@ -21,6 +21,7 @@
 //! - [`http`] — axum routes and [`ACCESS_KEY_HEADER`].
 //! - [`cache`] — [`FeedCache`], the short TTL in front of NJ Transit.
 //! - [`fares`] — checked-in rail fares added to `GET /rail/gtfs.zip`.
+//! - [`light_rail`] — flat Hudson-Bergen, Newark Light Rail, and River LINE fares.
 //! - [`tracks`] — platform stops, `assigned_stop_id`, and optional station boards.
 //!
 //! The token manager and upstream client live in [`njt_client`] so another
@@ -61,6 +62,7 @@ pub mod cache;
 pub mod config;
 pub mod fares;
 pub mod http;
+pub mod light_rail;
 pub mod tracks;
 
 pub use cache::FeedCache;

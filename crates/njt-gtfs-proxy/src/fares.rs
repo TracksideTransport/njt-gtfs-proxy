@@ -2,7 +2,8 @@
 //!
 //! The checked-in tables in `data/fares/` prefer the njtransit.com trip
 //! planner. A 2026 fare PDF fills a pair or a field the planner does not
-//! price. [`augment_rail_gtfs`] copies those fares into a
+//! price. Light rail in the same zip is a flat fare on `njt_light_rail`.
+//! [`augment_rail_gtfs`] copies those fares into a
 //! rail GTFS zip as Fares v2 files plus legacy Fares v1 `fare_attributes.txt`
 //! and `fare_rules.txt`. Each priced stop is its own fare area, because an
 //! intermediate trip is not the terminal-zone price. One-way prices do not
@@ -123,7 +124,7 @@ impl FareError {
     ///
     /// assert!(augment_rail_gtfs(b"not-a-zip").is_ok());
     /// ```
-    fn new(detail: impl Into<String>) -> Self {
+    pub(crate) fn new(detail: impl Into<String>) -> Self {
         Self {
             detail: detail.into(),
         }
@@ -458,7 +459,9 @@ pub fn augment_rail_gtfs(zip_bytes: &[u8]) -> Result<AugmentedGtfs, FareError> {
         .map(Vec::as_slice)
         .ok_or_else(|| FareError::new("stops.txt disappeared while reading the zip"))?;
     let routes = files.get("routes.txt").map(Vec::as_slice);
-    let generated = generate(catalog(), stops, routes)?;
+    let trips = files.get("trips.txt").map(Vec::as_slice);
+    let stop_times = files.get("stop_times.txt").map(Vec::as_slice);
+    let generated = generate(catalog(), stops, routes, trips, stop_times)?;
     for name in REPLACED_FILES {
         files.remove(*name);
     }
@@ -712,6 +715,8 @@ fn generate(
     catalog: &Catalog,
     stops_txt: &[u8],
     routes_txt: Option<&[u8]>,
+    trips_txt: Option<&[u8]>,
+    stop_times_txt: Option<&[u8]>,
 ) -> Result<Generated, FareError> {
     let (stops_header, stop_rows) = read_table(stops_txt, "stops.txt")?;
     let zone_column = stops_header
@@ -722,6 +727,20 @@ fn generate(
         .iter()
         .position(|name| name == "stop_id")
         .ok_or_else(|| FareError::new("stops.txt has no stop_id column"))?;
+    let name_column = stops_header.iter().position(|name| name == "stop_name");
+    let stop_pairs: Vec<(String, String)> = stop_rows
+        .iter()
+        .filter_map(|row| {
+            let stop_id = row.get(id_column)?.clone();
+            let stop_name = name_column
+                .and_then(|column| row.get(column))
+                .cloned()
+                .unwrap_or_default();
+            Some((stop_id, stop_name))
+        })
+        .collect();
+    let light_rail =
+        crate::light_rail::contribute(&stop_pairs, routes_txt, trips_txt, stop_times_txt)?;
 
     let mut present_areas: BTreeMap<String, String> = BTreeMap::new();
     let mut stop_areas: Vec<(String, String)> = Vec::new();
@@ -744,8 +763,24 @@ fn generate(
             }
             present_areas.entry(area_id.clone()).or_insert(area_name);
             stop_areas.push((stop_id, area_id));
+        } else if let Some(stop_id) = row.get(id_column).cloned() {
+            if let Some(area_id) = light_rail.zone_by_stop.get(&stop_id) {
+                if row.len() > zone_column {
+                    row[zone_column].clone_from(area_id);
+                }
+            }
         }
         rewritten.push(row);
+    }
+    for (stop_id, area_id) in &light_rail.stop_areas {
+        if !catalog.stations.contains_key(stop_id) {
+            stop_areas.push((stop_id.clone(), area_id.clone()));
+        }
+    }
+    for (area_id, area_name) in &light_rail.areas {
+        present_areas
+            .entry(area_id.clone())
+            .or_insert_with(|| area_name.clone());
     }
 
     let mut usable = Vec::new();
@@ -781,14 +816,24 @@ fn generate(
     );
     files.insert(
         "networks.txt".to_string(),
-        write_records(
-            &["network_id", "network_name"],
-            vec![vec![NETWORK_ID.to_string(), "NJ TRANSIT Rail".to_string()]],
-        )?,
+        write_records(&["network_id", "network_name"], {
+            let mut networks = vec![vec![NETWORK_ID.to_string(), "NJ TRANSIT Rail".to_string()]];
+            if !light_rail.routes.is_empty() || !light_rail.areas.is_empty() {
+                networks.push(vec![
+                    crate::light_rail::NETWORK_ID.to_string(),
+                    crate::light_rail::NETWORK_NAME.to_string(),
+                ]);
+            }
+            networks
+        })?,
     );
+    let mut route_rows = rail_route_rows(routes_txt)?;
+    route_rows.extend(light_rail.routes);
+    route_rows.sort();
+    route_rows.dedup();
     files.insert(
         "route_networks.txt".to_string(),
-        write_records(&["network_id", "route_id"], rail_route_rows(routes_txt)?)?,
+        write_records(&["network_id", "route_id"], route_rows)?,
     );
     files.insert("rider_categories.txt".to_string(), rider_categories()?);
     files.insert("fare_media.txt".to_string(), fare_media()?);
@@ -811,13 +856,39 @@ fn generate(
     );
 
     let products = products_for(&usable);
-    files.insert("fare_products.txt".to_string(), product_file(&products)?);
-    files.insert("fare_leg_rules.txt".to_string(), leg_rules(&products)?);
+    files.insert(
+        "fare_products.txt".to_string(),
+        append_records(product_file(&products)?, &light_rail.products)?,
+    );
+    files.insert(
+        "fare_leg_rules.txt".to_string(),
+        append_records(leg_rules(&products)?, &light_rail.leg_rules)?,
+    );
     files.insert(
         "fare_attributes.txt".to_string(),
-        fare_attributes(&products)?,
+        append_records(fare_attributes(&products)?, &light_rail.attributes)?,
     );
-    files.insert("fare_rules.txt".to_string(), fare_rules(&products)?);
+    files.insert(
+        "fare_rules.txt".to_string(),
+        append_records(fare_rules(&products)?, &light_rail.fare_rules)?,
+    );
+    if !light_rail.transfers.is_empty() {
+        files.insert(
+            "fare_transfer_rules.txt".to_string(),
+            write_records(
+                &[
+                    "from_leg_group_id",
+                    "to_leg_group_id",
+                    "transfer_count",
+                    "duration_limit",
+                    "duration_limit_type",
+                    "fare_transfer_type",
+                    "fare_product_id",
+                ],
+                light_rail.transfers,
+            )?,
+        );
+    }
 
     Ok(Generated {
         stops: write_records(
@@ -1468,6 +1539,53 @@ fn read_table(bytes: &[u8], name: &str) -> Result<(Vec<String>, Vec<Vec<String>>
     Ok((header, rows))
 }
 
+/// Appends data rows to CSV bytes that already include a header.
+///
+/// # Arguments
+///
+/// * `bytes` — CSV bytes, including the header line.
+/// * `rows` — Data rows in the same column order as that header.
+///
+/// # Returns
+///
+/// The CSV with `rows` added. `bytes` unchanged when `rows` is empty.
+///
+/// # Errors
+///
+/// Returns [`FareError`] when a row cannot be written.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// See [`augment_rail_gtfs`].
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn append_records(mut bytes: Vec<u8>, rows: &[Vec<String>]) -> Result<Vec<u8>, FareError> {
+    if rows.is_empty() {
+        return Ok(bytes);
+    }
+    let mut writer = csv::WriterBuilder::new().flexible(true).from_writer(bytes);
+    for row in rows {
+        writer
+            .write_record(row)
+            .map_err(|err| FareError::new(err.to_string()))?;
+    }
+    writer
+        .flush()
+        .map_err(|err| FareError::new(err.to_string()))?;
+    bytes = writer
+        .into_inner()
+        .map_err(|err| FareError::new(err.to_string()))?;
+    Ok(bytes)
+}
+
 /// Encodes rows as CSV.
 ///
 /// # Arguments
@@ -1602,7 +1720,7 @@ mod tests {
         assert!(stops.contains("105,NEW YORK PENN STATION,njt_stop_105"));
         assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_stop_148"));
         assert!(stops.contains("63,HOBOKEN,njt_stop_63"));
-        assert!(stops.contains("6900,MILITARY PARK LIGHT RAIL STATION,336"));
+        assert!(stops.contains("6900,MILITARY PARK LIGHT RAIL STATION,njt_nlr"));
         let rules = read_named(&augmented.bytes, "fare_rules.txt");
         assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
         assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_148,njt_stop_105"));
@@ -1614,8 +1732,8 @@ mod tests {
         let routes = read_named(&augmented.bytes, "route_networks.txt");
         assert!(routes.contains("njt_rail,10"));
         assert!(routes.contains("njt_rail,11"));
-        assert!(!routes.contains(",4"));
-        assert!(!routes.contains(",17"));
+        assert!(!routes.contains("njt_rail,4"));
+        assert!(!routes.contains("njt_rail,17"));
         let join = read_named(&augmented.bytes, "fare_leg_join_rules.txt");
         assert!(join.contains("njt_rail,njt_rail"));
         let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
@@ -1623,7 +1741,7 @@ mod tests {
         assert!(leg.contains("monthly_njt_stop_105_njt_stop_148"));
         assert!(!leg.contains("timeframe"));
         let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
-        assert!(!stop_areas.contains("6900,"));
+        assert!(stop_areas.contains("6900,njt_nlr"));
     }
 
     #[test]
@@ -1688,5 +1806,58 @@ mod tests {
         let stops = read_named(&inherited, "stops.txt");
         assert!(stops.contains("105:station,NEW YORK PENN STATION,njt_stop_105"));
         assert!(stops.contains("105:track:1,NEW YORK PENN STATION,njt_stop_105"));
+    }
+
+    #[test]
+    fn light_rail_is_a_flat_fare_and_rail_pairs_stay_put() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            "stops.txt".to_string(),
+            b"stop_id,stop_name,zone_id\n105,NEW YORK PENN STATION,329\n148,TRENTON TRANSIT CENTER,5709\n6900,MILITARY PARK LIGHT RAIL STATION,336\n26326,PENN STATION LIGHT RAIL DEPARTURE,336\n36994,EXCHANGE PLACE LIGHT RAIL STATION,336\n".to_vec(),
+        );
+        files.insert(
+            "routes.txt".to_string(),
+            b"route_id,route_short_name,route_type\n10,NEC,113\n4,HBLR,113\n13,NLR,113\n".to_vec(),
+        );
+        files.insert(
+            "trips.txt".to_string(),
+            b"trip_id,route_id\nh1,4\nn1,13\n".to_vec(),
+        );
+        files.insert(
+            "stop_times.txt".to_string(),
+            b"trip_id,stop_id\nh1,36994\nn1,6900\nn1,26326\n".to_vec(),
+        );
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        let stops = read_named(&augmented.bytes, "stops.txt");
+        assert!(stops.contains("105,NEW YORK PENN STATION,njt_stop_105"));
+        assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_stop_148"));
+        assert!(stops.contains("6900,MILITARY PARK LIGHT RAIL STATION,njt_nlr"));
+        assert!(stops.contains("36994,EXCHANGE PLACE LIGHT RAIL STATION,njt_hblr"));
+        let rules = read_named(&augmented.bytes, "fare_rules.txt");
+        let attributes = read_named(&augmented.bytes, "fare_attributes.txt");
+        assert!(attributes.contains("ow_adult_njt_stop_105_njt_stop_148,20.35,USD"));
+        assert!(attributes.contains("ow_adult_njt_hblr,2.65,USD,1,,NJT,3600"));
+        assert!(rules.contains("ow_adult_njt_hblr,njt_hblr,njt_hblr"));
+        assert!(rules.contains("ow_adult_njt_nlr,njt_nlr,njt_nlr"));
+        assert!(!rules.contains("ow_adult_njt_nlr_underground"));
+        let products = read_named(&augmented.bytes, "fare_products.txt");
+        assert!(products.contains(
+            "ow_adult_njt_hblr,Adult one-way on Hudson-Bergen Light Rail,adult,njt_ticket,2.65,USD"
+        ));
+        assert!(
+            products.contains("ow_adult_njt_nlr_underground,Adult one-way on Newark Light Rail underground stations,adult,njt_ticket,0.85,USD"),
+            "{products}"
+        );
+        assert!(!products.contains("school_monthly_njt_river"));
+        let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
+        assert!(stop_areas.contains("6900,njt_nlr"));
+        assert!(stop_areas.contains("6900,njt_nlr_underground"));
+        assert!(stop_areas.contains("26326,njt_nlr_underground"));
+        let transfers = read_named(&augmented.bytes, "fare_transfer_rules.txt");
+        assert!(transfers.contains("njt_hblr,njt_hblr,3,3600,1,0,"));
+        assert!(transfers.contains("njt_nlr,njt_nlr,3,3600,1,0,"));
+        let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
+        assert!(leg.contains("njt_nlr,njt_light_rail,njt_nlr_underground,njt_nlr_underground,ow_adult_njt_nlr_underground"));
+        assert!(leg.contains("ow_adult_njt_stop_105_njt_stop_148"));
     }
 }

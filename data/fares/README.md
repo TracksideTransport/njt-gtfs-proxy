@@ -32,7 +32,11 @@ Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-tr
 
 `--planner` calls `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`) for same-line station pairs and for Hoboken↔Newark-division pairs. Responses are cached under `planner_cache/` (gitignored) and the job resumes. The planner price replaces the PDF. A blank or `0.00` planner field keeps the PDF amount for that field. A pair the planner cannot price keeps the PDF row. `planner_mismatches.csv` records every field where the two sources differ. It is an audit, not the published table.
 
-Each priced stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
+Each priced commuter-rail stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
+
+## Light rail
+
+`light_rail.csv` is the flat fare for Hudson-Bergen Light Rail, Newark Light Rail, and the River LINE, plus the Newark underground one-way. The PDFs are `source/hblr.pdf`, `source/newark-light-rail.pdf`, and `source/river-line.pdf`. The proxy puts these on network `njt_light_rail`, not `njt_rail`.
 
 Rebuild:
 

@@ -39,7 +39,9 @@ Loaded on every page that was opened. It is the support widget, not schedule dat
 
 ## What this proxy already uses, and what it does not
 
-The fare refresh calls `TrainSchedule` / `getSchedule` directly. That price is the one written into the GTFS zip. A 2026 PDF amount is used only for a pair or a field the planner does not price. It does not call RailData.
+The commuter-rail fare refresh calls `TrainSchedule` / `getSchedule` directly. That price is the one written into the GTFS zip. A 2026 PDF amount is used only for a pair or a field the planner does not price. It does not call RailData.
+
+`/light-rail-to` calls the same GraphQL endpoint with `getTrainScheduleStationsLightRailForSchedules` and `getTrainSchedulesCurrentLightRail`. That station list is the three system names, and the schedules come back as PDF links, not a fare. Light rail one-way prices show up on `getTripPlannerSchedule` instead (`routeType` `L`). They match the flat charts: Hudson-Bergen `$2.65` / `$1.25`, Newark Light Rail and River LINE `$1.90` / `$0.85`.
 
 Worth knowing, not wired in:
 
