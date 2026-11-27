@@ -13,8 +13,14 @@
 //! Atlantic City Rail Line: the River LINE connects it to the Northeast
 //! Corridor, and each leg keeps its own fare. When the zip has the stops,
 //! `transfers.txt` records the walk at Pennsauken and at Trenton.
-//! [`inherit_track_fare_areas`] copies a stop's area onto `{stop_id}:station`
+//! [`inherit_track_fare_areas`] copies a stop's areas onto `{stop_id}:station`
 //! and `{stop_id}:track:{label}` after platform injection.
+//!
+//! The zone numbers printed on the New York Penn, Hoboken, and Newark Penn
+//! charts are added as extra areas, such as `njt_zone_ny_5` ("Zone 5 from New
+//! York Penn Station"). A zone is relative to its terminal, so no fare rule
+//! uses these areas and they do not change any price. They let a rider or a
+//! tool see the printed zone of each station.
 //!
 //! # Examples
 //!
@@ -42,6 +48,15 @@ const FARES_CSV: &str = include_str!("../../../data/fares/fares.csv");
 const ACCESSIBILITY_CSV: &str = include_str!("../../../data/accessibility/rail_stations.csv");
 /// Checked-in stop-to-area rows.
 const STATIONS_CSV: &str = include_str!("../../../data/fares/stations.csv");
+/// Printed zone of each stop on each terminal chart.
+const ZONES_CSV: &str = include_str!("../../../data/fares/zones.csv");
+
+/// Terminal key in `zones.csv` and the name used in zone area names.
+const ZONE_TERMINALS: &[(&str, &str)] = &[
+    ("ny", "New York Penn Station"),
+    ("hoboken", "Hoboken Terminal"),
+    ("newark", "Newark Penn Station"),
+];
 
 /// Header set on `GET /rail/gtfs.zip` to report whether fare files were added.
 pub const FARE_HEADER: &str = "x-njt-fares";
@@ -180,6 +195,15 @@ struct StationArea {
     atlantic_city_line: bool,
 }
 
+/// A printed terminal zone that a stop belongs to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ZoneArea {
+    /// Area id, `njt_zone_{terminal}_{zone}`.
+    area_id: String,
+    /// Rider-facing name, such as `Zone 5 from Hoboken Terminal`.
+    area_name: String,
+}
+
 /// Checked-in fares and the stops they price.
 #[derive(Debug)]
 struct Catalog {
@@ -187,6 +211,8 @@ struct Catalog {
     fares: Vec<Fare>,
     /// `stop_id` to fare area.
     stations: HashMap<String, StationArea>,
+    /// `stop_id` to its printed terminal zones, in `zones.csv` order.
+    zones: HashMap<String, Vec<ZoneArea>>,
 }
 
 /// Embedded catalog, parsed once.
@@ -213,17 +239,19 @@ struct Catalog {
 fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
     CATALOG.get_or_init(|| {
-        Catalog::parse(FARES_CSV, STATIONS_CSV).expect("checked-in rail fare tables parse")
+        Catalog::parse(FARES_CSV, STATIONS_CSV, ZONES_CSV)
+            .expect("checked-in rail fare tables parse")
     })
 }
 
 impl Catalog {
-    /// Parses fare and station CSV text.
+    /// Parses fare, station, and zone CSV text.
     ///
     /// # Arguments
     ///
     /// * `fares_csv` — Contents of `fares.csv`.
     /// * `stations_csv` — Contents of `stations.csv`.
+    /// * `zones_csv` — Contents of `zones.csv`.
     ///
     /// # Returns
     ///
@@ -247,10 +275,15 @@ impl Catalog {
     ///
     /// assert!(!augment_rail_gtfs(b"x").unwrap().fares_added);
     /// ```
-    fn parse(fares_csv: &str, stations_csv: &str) -> Result<Self, FareError> {
+    fn parse(fares_csv: &str, stations_csv: &str, zones_csv: &str) -> Result<Self, FareError> {
         let fares = read_fares(fares_csv)?;
         let stations = read_stations(stations_csv)?;
-        Ok(Self { fares, stations })
+        let zones = read_zones(zones_csv)?;
+        Ok(Self {
+            fares,
+            stations,
+            zones,
+        })
     }
 }
 
@@ -354,6 +387,65 @@ fn read_stations(text: &str) -> Result<HashMap<String, StationArea>, FareError> 
         stations.insert(station.stop_id.clone(), station);
     }
     Ok(stations)
+}
+
+/// Reads `zones.csv` into a stop-id map of printed terminal zones.
+///
+/// # Arguments
+///
+/// * `text` — CSV text with `stop_id`, `terminal`, and `zone` columns.
+///
+/// # Returns
+///
+/// Stop id to the [`ZoneArea`] rows for that stop.
+///
+/// # Errors
+///
+/// Returns [`FareError`] when the CSV cannot be read, a column is missing, a
+/// terminal is not one of [`ZONE_TERMINALS`], or a zone is not a whole number.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Each zone becomes an area in the augmented zip. See [`augment_rail_gtfs`].
+///
+/// ```
+/// use njt_gtfs_proxy::augment_rail_gtfs;
+///
+/// assert!(augment_rail_gtfs(b"x").is_ok());
+/// ```
+fn read_zones(text: &str) -> Result<HashMap<String, Vec<ZoneArea>>, FareError> {
+    let mut reader = csv::Reader::from_reader(text.as_bytes());
+    let headers = reader
+        .headers()
+        .map_err(|err| FareError::new(err.to_string()))?
+        .clone();
+    let mut zones: HashMap<String, Vec<ZoneArea>> = HashMap::new();
+    for record in reader.records() {
+        let record = record.map_err(|err| FareError::new(err.to_string()))?;
+        let stop_id = column(&headers, &record, "stop_id")?;
+        let terminal = column(&headers, &record, "terminal")?;
+        let zone = column(&headers, &record, "zone")?;
+        let Some((_, terminal_name)) = ZONE_TERMINALS.iter().find(|(key, _)| *key == terminal)
+        else {
+            return Err(FareError::new(format!(
+                "zones.csv has unknown terminal {terminal}"
+            )));
+        };
+        if zone.is_empty() || !zone.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(FareError::new(format!(
+                "zones.csv has zone {zone:?} for stop {stop_id}"
+            )));
+        }
+        zones.entry(stop_id).or_default().push(ZoneArea {
+            area_id: format!("njt_zone_{terminal}_{zone}"),
+            area_name: format!("Zone {zone} from {terminal_name}"),
+        });
+    }
+    Ok(zones)
 }
 
 /// Copies one named column from a CSV record.
@@ -519,12 +611,14 @@ pub fn zip_has_fare_rules(zip_bytes: &[u8]) -> bool {
     found
 }
 
-/// Copies each priced stop's fare area onto its platform parent and track children.
+/// Copies each priced stop's areas onto its platform parent and track children.
 ///
 /// [`augment_rail_gtfs`] prices the original `stop_id`. Track injection then
 /// adds `{stop_id}:station` and `{stop_id}:track:{label}`. Those rows are not
-/// in `stop_areas.txt`. This pass adds them, and sets `zone_id` to the same
-/// area, so Fares v1 and v2 both see the platform.
+/// in `stop_areas.txt`. This pass lists each of them in every area of the
+/// original stop (its fare area and any printed terminal zones), and sets
+/// `zone_id` to the original stop's `zone_id`, so Fares v1 and v2 both see the
+/// platform. When the original stop has no `zone_id`, its first area is used.
 ///
 /// # Arguments
 ///
@@ -601,13 +695,31 @@ pub fn inherit_track_fare_areas(zip_bytes: &[u8]) -> Result<Vec<u8>, FareError> 
         .iter()
         .position(|name| name == "area_id")
         .ok_or_else(|| FareError::new("stop_areas.txt has no area_id column"))?;
-    let mut area_by_stop: HashMap<String, String> = HashMap::new();
+    let mut areas_by_stop: HashMap<String, Vec<String>> = HashMap::new();
+    let mut listed: BTreeSet<(String, String)> = BTreeSet::new();
     for row in &area_rows {
         if let (Some(stop_id), Some(area_id)) = (row.get(area_stop_column), row.get(area_id_column))
         {
-            area_by_stop.insert(stop_id.clone(), area_id.clone());
+            if listed.insert((stop_id.clone(), area_id.clone())) {
+                areas_by_stop
+                    .entry(stop_id.clone())
+                    .or_default()
+                    .push(area_id.clone());
+            }
         }
     }
+    let zone_by_stop: HashMap<String, String> = zone_column
+        .map(|column| {
+            stop_rows
+                .iter()
+                .filter_map(|row| {
+                    let stop_id = row.get(stop_id_column)?;
+                    let zone = row.get(column).filter(|zone| !zone.is_empty())?;
+                    Some((stop_id.clone(), zone.clone()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
     let mut changed = false;
     for row in &mut stop_rows {
         let Some(stop_id) = row.get(stop_id_column).cloned() else {
@@ -616,25 +728,32 @@ pub fn inherit_track_fare_areas(zip_bytes: &[u8]) -> Result<Vec<u8>, FareError> 
         let Some(base) = fare_base_stop(&stop_id) else {
             continue;
         };
-        let Some(area_id) = area_by_stop.get(base).cloned() else {
+        let Some(areas) = areas_by_stop.get(base).cloned() else {
             continue;
         };
-        if let Some(column) = zone_column {
-            if row.get(column).is_none_or(|zone| zone != &area_id) {
+        // The base stop's zone_id is its fare area. A stop can also be in
+        // printed-zone areas, which must not become the platform's zone_id.
+        let zone = zone_by_stop
+            .get(base)
+            .cloned()
+            .or_else(|| areas.first().cloned());
+        if let (Some(column), Some(zone)) = (zone_column, zone) {
+            if row.get(column).is_none_or(|current| current != &zone) {
                 if row.len() <= column {
                     row.resize(column + 1, String::new());
                 }
-                row[column].clone_from(&area_id);
+                row[column] = zone;
                 changed = true;
             }
         }
-        if let std::collections::hash_map::Entry::Vacant(entry) = area_by_stop.entry(stop_id) {
-            let mut area_row = vec![String::new(); areas_header.len().max(area_id_column + 1)];
-            area_row[area_stop_column].clone_from(entry.key());
-            area_row[area_id_column].clone_from(&area_id);
-            entry.insert(area_id);
-            area_rows.push(area_row);
-            changed = true;
+        for area_id in areas {
+            if listed.insert((stop_id.clone(), area_id.clone())) {
+                let mut area_row = vec![String::new(); areas_header.len().max(area_id_column + 1)];
+                area_row[area_stop_column].clone_from(&stop_id);
+                area_row[area_id_column] = area_id;
+                area_rows.push(area_row);
+                changed = true;
+            }
         }
     }
     if !changed {
@@ -999,6 +1118,15 @@ fn generate(
             .entry(area_id.clone())
             .or_insert_with(|| area_name.clone());
     }
+    let mut zone_areas: BTreeMap<String, String> = BTreeMap::new();
+    for (stop_id, _) in &stop_pairs {
+        for zone in catalog.zones.get(stop_id).into_iter().flatten() {
+            zone_areas
+                .entry(zone.area_id.clone())
+                .or_insert_with(|| zone.area_name.clone());
+            stop_areas.push((stop_id.clone(), zone.area_id.clone()));
+        }
+    }
 
     let acrl_areas: BTreeSet<&str> = catalog
         .stations
@@ -1024,6 +1152,7 @@ fn generate(
             &["area_id", "area_name"],
             present_areas
                 .iter()
+                .chain(zone_areas.iter())
                 .map(|(id, name)| vec![id.clone(), name.clone()])
                 .collect(),
         )?,
@@ -2237,6 +2366,75 @@ mod tests {
         let stops = read_named(&inherited, "stops.txt");
         assert!(stops.contains("105:station,NEW YORK PENN STATION,njt_stop_105"));
         assert!(stops.contains("105:track:1,NEW YORK PENN STATION,njt_stop_105"));
+    }
+
+    #[test]
+    fn printed_terminal_zones_are_areas_without_fare_rules() {
+        let augmented = augment_rail_gtfs(&sample_zip()).expect("augment");
+        let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
+        assert!(stop_areas.contains("148,njt_stop_148"));
+        assert!(stop_areas.contains("148,njt_zone_ny_22"));
+        assert!(stop_areas.contains("148,njt_zone_newark_22"));
+        assert!(
+            !stop_areas.contains("105,njt_zone_"),
+            "a terminal has no zone from itself"
+        );
+        let areas = read_named(&augmented.bytes, "areas.txt");
+        assert!(areas.contains("njt_zone_ny_22,Zone 22 from New York Penn Station"));
+        assert!(areas.contains("njt_zone_newark_22,Zone 22 from Newark Penn Station"));
+        let stops = read_named(&augmented.bytes, "stops.txt");
+        assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_stop_148"));
+        for file in ["fare_leg_rules.txt", "fare_rules.txt"] {
+            assert!(
+                !read_named(&augmented.bytes, file).contains("njt_zone_"),
+                "{file} must not price printed zones"
+            );
+        }
+    }
+
+    #[test]
+    fn track_children_inherit_every_area_but_keep_the_fare_zone_id() {
+        let augmented = augment_rail_gtfs(&sample_zip()).expect("augment");
+        let mut files = BTreeMap::new();
+        let mut archive = ZipArchive::new(Cursor::new(augmented.bytes.as_slice())).expect("zip");
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().to_string();
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).expect("read");
+            files.insert(name, bytes);
+        }
+        let mut stops = String::from_utf8(files.remove("stops.txt").expect("stops")).expect("utf8");
+        stops.push_str("148:track:1,TRENTON TRANSIT CENTER,\n");
+        files.insert("stops.txt".to_string(), stops.into_bytes());
+        let inherited =
+            inherit_track_fare_areas(&write_zip(&files).expect("zip")).expect("inherit");
+        let stop_areas = read_named(&inherited, "stop_areas.txt");
+        assert!(stop_areas.contains("148:track:1,njt_stop_148"));
+        assert!(stop_areas.contains("148:track:1,njt_zone_ny_22"));
+        assert!(stop_areas.contains("148:track:1,njt_zone_newark_22"));
+        let stops = read_named(&inherited, "stops.txt");
+        assert!(stops.contains("148:track:1,TRENTON TRANSIT CENTER,njt_stop_148"));
+        let again = inherit_track_fare_areas(&inherited).expect("idempotent");
+        assert_eq!(again, inherited, "a second pass changes nothing");
+    }
+
+    #[test]
+    fn every_zone_row_names_a_known_terminal_and_a_priced_stop() {
+        let catalog = catalog();
+        assert!(
+            catalog.zones.len() > 100,
+            "zones.csv covers the terminal charts"
+        );
+        for (stop_id, zones) in &catalog.zones {
+            assert!(
+                catalog.stations.contains_key(stop_id),
+                "zones.csv stop {stop_id} is not in stations.csv"
+            );
+            for zone in zones {
+                assert!(zone.area_id.starts_with("njt_zone_"));
+            }
+        }
     }
 
     #[test]

@@ -78,6 +78,8 @@ A stop has one `zone_id`. NJ Transit's printed zone number is not a fare: the sa
 
 `stops.zone_id` for a priced rail stop is that area id. Upstream `zone_id` values are internal ids (light rail stops share one of them) and are left in place for stops this table does not price. Fares v1 `fare_rules.txt` uses those area ids as `origin_id` and `destination_id`. v1 publishes the adult one-way price only, with `payment_method` 1 and an empty `transfers` field so the fare is the origin-to-destination ticket rather than a per-leg add-on.
 
+The printed zones are still in the zip, as extra areas that no fare rule uses. Each zone a station has on the New York Penn, Hoboken, or Newark Penn chart becomes an area `njt_zone_{terminal}_{zone}` (`terminal` is `ny`, `hoboken`, or `newark`), named for example `Zone 5 from Hoboken Terminal`, and the stop is listed in it in `stop_areas.txt`. A stop can be in several areas, so Summit is in `njt_stop_145`, `njt_zone_ny_9`, and `njt_zone_hoboken_9`. Prices do not change. The terminals themselves have no zone. Platform stops inherit every area of their station, and their `zone_id` stays the station's fare area. The zones come from `data/fares/zones.csv`.
+
 ### Products
 
 For each priced pair the feed includes:

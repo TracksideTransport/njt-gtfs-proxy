@@ -25,6 +25,7 @@ A row the planner priced uses `source_status` `live` and an empty `source_sha256
 | `stations.csv` | Rail `stop_id`, fare area, zone number, and the chart name that matched |
 | `gaps.csv` | Stops with no fare, and station pairs that are not fare rules. The `reason` column separates `no single through ticket` (off the Atlantic City Rail Line; the River LINE connects, each leg priced separately), `meadowlands has no regular fare`, and `no trip` |
 | `rail_stops.csv` | Heavy-rail stop directory used to match names. Refresh it with `--gtfs` when stop ids change |
+| `zones.csv` | The zone printed beside each stop on the New York Penn, Hoboken, and Newark Penn charts, one row per stop and terminal. `scripts/refresh_zones.py` derives it from the zones kept on terminal pairs in `fares.csv`. A pair between two terminals is skipped |
 
 Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-trip, weekly, FlexPass, monthly, and school monthly.
 
@@ -32,7 +33,7 @@ Round-trip columns are in `fares.csv` only. GTFS leg products are one-way, 10-tr
 
 `--planner` calls `POST https://www.njtransit.com/api/graphql/graphql` (`getSchedule`) for same-line station pairs and for Hoboken↔Newark-division pairs. Responses are cached under `planner_cache/` (gitignored) and the job resumes. The planner price replaces the PDF. A blank or `0.00` planner field keeps the PDF amount for that field. A pair the planner cannot price keeps the PDF row. `planner_mismatches.csv` records every field where the two sources differ. It is an audit, not the published table.
 
-Each priced commuter-rail stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not an area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price.
+Each priced commuter-rail stop is its own area (`njt_stop_{stop_id}`). Secaucus upper and lower share `njt_secaucus`. A printed zone number is not a fare area: the same zone is a different price from New York and from Hoboken, and an intermediate trip is not the terminal price. The proxy still lists each printed zone as an extra area (`njt_zone_{terminal}_{zone}`) that no fare rule uses.
 
 Pairs that leave the Atlantic City Rail Line are `no single through ticket` in `gaps.csv` and are not fare rules. The River LINE connects that line to the Northeast Corridor at Pennsauken and Trenton, and each leg is priced separately (Atlantic City fare, River LINE fare, Northeast Corridor fare). Philadelphia 30th Street is an Atlantic City station that SEPTA also serves; no other NJ Transit rail line serves it. Trenton Transit Center is the other station shared with SEPTA, and there is no joint SEPTA fare. Meadowlands pairs are `meadowlands has no regular fare`. Pairs with no planner trip are `no trip`.
 
@@ -45,4 +46,7 @@ Rebuild:
 ```bash
 python3 scripts/refresh_fares.py
 python3 scripts/refresh_fares.py --gtfs /path/to/rail_data.zip --planner
+python3 scripts/refresh_zones.py
 ```
+
+Run `refresh_zones.py` after either fare command so `zones.csv` matches `fares.csv`.
