@@ -29,8 +29,8 @@ pub use catalog::{
 };
 pub use enrich::{enrich_trip_updates, EnrichInput};
 pub use headsign::track_from_headsign;
-pub use hub::TrackHub;
-pub use index::{same_train, ScheduledTrip, StaticIndex};
+pub use hub::{TrackHub, INDEX_RETRY_AFTER};
+pub use index::{same_train, ScheduledTrip, StaticIndex, TripLookup};
 pub use platforms::inject_platforms;
 
 #[cfg(test)]
@@ -221,6 +221,71 @@ mod tests {
     }
 
     #[test]
+    fn hashed_lookup_agrees_with_the_full_scan() {
+        let mut index = StaticIndex::from_zip(&tiny_zip()).unwrap();
+        index.trips.push(ScheduledTrip {
+            trip_id: "12".to_string(),
+            service_id: "1".to_string(),
+            train: "a125".to_string(),
+        });
+        let lookup = TripLookup::new(&index);
+        for train in [
+            "3846", "03846", "510", "0510", " 510 ", "A125", "a125", "125", "", "9999",
+        ] {
+            for date in [None, Some("20260115"), Some("20260116"), Some(" ")] {
+                assert_eq!(
+                    lookup.trip_for_train(train, date),
+                    index.trip_for_train(train, date),
+                    "train {train:?} on {date:?}"
+                );
+            }
+        }
+        assert_eq!(
+            lookup.trip("11").map(|trip| trip.train.as_str()),
+            Some("0510")
+        );
+        assert!(lookup.trip("missing").is_none());
+    }
+
+    #[test]
+    fn a_board_track_is_translated_only_once() {
+        // A translation chain: raw "2" is public "1", and raw "1" is public "4".
+        static CHAINED: Station = Station {
+            code: "ZZ",
+            stop_id: "105",
+            name_fragment: "TEST",
+            tracks: &["1", "4"],
+            translations: &[("2", "1"), ("1", "4")],
+        };
+        let rows = parse_board(
+            br#"{"ITEMS":[{"TRAIN_ID":"3846","TRACK":"2","SCHED_DEP_DATE":"15-Jan-2026 10:00:00 AM"}]}"#,
+            &CHAINED,
+        );
+        assert_eq!(rows[0].track, "1");
+        let mut boards = HashMap::new();
+        boards.insert("ZZ".to_string(), rows);
+        let enriched = enrich_trip_updates(
+            &feed("3846", Some("9"), "On time", 0),
+            &EnrichInput {
+                stations: &[&CHAINED],
+                index: &StaticIndex::default(),
+                boards: &boards,
+            },
+        )
+        .expect("board track");
+        let message = FeedMessage::decode(enriched.as_slice()).unwrap();
+        let properties = message.entity[0]
+            .trip_update
+            .as_ref()
+            .unwrap()
+            .stop_time_update[0]
+            .stop_time_properties
+            .as_ref()
+            .unwrap();
+        assert_eq!(properties.assigned_stop_id.as_deref(), Some("105:track:1"));
+    }
+
+    #[test]
     fn single_at_summit_becomes_the_public_track() {
         let summit = station("ST").unwrap();
         assert_eq!(summit.public_track("Single"), Some("S"));
@@ -316,6 +381,61 @@ mod tests {
             .unwrap();
         assert_eq!(properties.stop_headsign.as_deref(), Some("On time"));
         assert_eq!(properties.assigned_stop_id.as_deref(), Some("105:track:9"));
+    }
+
+    #[test]
+    fn index_is_retried_after_a_failure_and_refreshed_when_stale() {
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let start = chrono::DateTime::parse_from_rfc3339("2026-01-15T12:00:00Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let clock = njt_client::ManualClock::new(start);
+        let hub = TrackHub::new(
+            true,
+            false,
+            vec![station("NY").unwrap()],
+            Duration::from_secs(600),
+            None,
+            Arc::new(clock.clone()),
+        );
+        let max_age = Duration::from_secs(6 * 60 * 60);
+        assert!(hub.index_needs_load(max_age));
+
+        let unreadable = bytes::Bytes::from_static(b"not a zip");
+        assert_eq!(hub.inject(unreadable.clone()), unreadable);
+        assert!(
+            !hub.index_ready(),
+            "a zip that did not parse is not an index"
+        );
+        assert!(!hub.index_needs_load(max_age), "backoff after a failure");
+        clock.advance(INDEX_RETRY_AFTER);
+        assert!(hub.index_needs_load(max_age), "retried after the backoff");
+
+        let _ = hub.inject(bytes::Bytes::from(tiny_zip()));
+        assert!(hub.index_ready());
+        assert!(!hub.index_needs_load(max_age));
+        assert!(!hub.index_needs_load(Duration::ZERO));
+        clock.advance(max_age);
+        assert!(hub.index_needs_load(max_age), "stale index is reloaded");
+        assert!(!hub.index_needs_load(Duration::ZERO));
+    }
+
+    #[test]
+    fn disabled_hub_never_loads_the_static_index() {
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let off = TrackHub::new(
+            false,
+            false,
+            Vec::new(),
+            Duration::from_secs(600),
+            None,
+            Arc::new(njt_client::SystemClock),
+        );
+        assert!(!off.index_needs_load(Duration::from_secs(60)));
     }
 
     #[test]

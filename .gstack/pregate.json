@@ -1,0 +1,39 @@
+{
+  "$schema": "https://github.com/garrytan/gstack/docs/pregate.md#pregate-v1",
+  "runner": null,
+  "dependencies": {
+    "data/fares/fares.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/fares/stations.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/fares/zones.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/fares/light_rail.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/fares/light_rail_stops.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/accessibility/rail_stations.csv": ["crates/njt-gtfs-proxy/src/fares.rs"],
+    "data/fares/gaps.csv": [],
+    "data/fares/planner_mismatches.csv": [],
+    "data/fares/rail_stops.csv": [],
+    "data/fares/source/**": [],
+    "scripts/*.py": [],
+    "Cargo.toml": [
+      "crates/njt-client/tests/upstream.rs",
+      "crates/njt-gtfs-proxy/tests/proxy.rs"
+    ],
+    "Cargo.lock": [
+      "crates/njt-client/tests/upstream.rs",
+      "crates/njt-gtfs-proxy/tests/proxy.rs"
+    ],
+    "clippy.toml": [
+      "crates/njt-client/tests/upstream.rs",
+      "crates/njt-gtfs-proxy/tests/proxy.rs"
+    ],
+    "Dockerfile": [],
+    ".dockerignore": [],
+    ".github/workflows/ci.yml": []
+  },
+  "local": ["ci.yml/rust"],
+  "empty_lanes": [],
+  "selection": {},
+  "warn": [],
+  "strays": {
+    "allow": []
+  }
+}

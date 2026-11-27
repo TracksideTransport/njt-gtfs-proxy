@@ -78,6 +78,8 @@ A stop has one `zone_id`. NJ Transit's printed zone number is not a fare: the sa
 
 `stops.zone_id` for a priced rail stop is that area id. Upstream `zone_id` values are internal ids (light rail stops share one of them) and are left in place for stops this table does not price. Fares v1 `fare_rules.txt` uses those area ids as `origin_id` and `destination_id`. v1 publishes the adult one-way price only, with `payment_method` 1 and an empty `transfers` field so the fare is the origin-to-destination ticket rather than a per-leg add-on.
 
+The printed zones are still in the zip, as extra areas that no fare rule uses. Each zone a station has on the New York Penn, Hoboken, or Newark Penn chart becomes an area `njt_zone_{terminal}_{zone}` (`terminal` is `ny`, `hoboken`, or `newark`), named for example `Zone 5 from Hoboken Terminal`, and the stop is listed in it in `stop_areas.txt`. A stop can be in several areas, so Summit is in `njt_stop_145`, `njt_zone_ny_9`, and `njt_zone_hoboken_9`. Prices do not change. The terminals themselves have no zone. Platform stops inherit every area of their station, and their `zone_id` stays the station's fare area. The zones come from `data/fares/zones.csv`.
+
 ### Products
 
 For each priced pair the feed includes:
@@ -131,7 +133,7 @@ The amounts are the charts linked from NJ Transit's adjusted-fares page. The PDF
 
 Reduced is the child, senior, and disabled one-way from the chart. Student monthly is the chart's student column. Round trip is not a separate product: the Hudson-Bergen round trip is twice the one-way fare, and the other two charts do not print one.
 
-A one-way ticket includes transfers between vehicles on the same system for that window. The chart does not give a maximum number of vehicle changes. `fare_transfer_rules.txt` allows 3 consecutive transfers inside the leg group, with `duration_limit_type` 1 so the limit runs from the first departure to the later arrival. Newark Light Rail's underground stations (Warren Street, Washington Street, Military Park, and the Penn Station light rail platforms) also offer an adult one-way of `$0.85`. Fares v2 lists that product when both ends are those stops. Fares v1 keeps the full-system adult fare, because a stop has one `zone_id`.
+A one-way ticket includes transfers between vehicles on the same system for that window. The chart does not give a maximum number of vehicle changes. `fare_transfer_rules.txt` allows 3 consecutive transfers inside the leg group, with `duration_limit_type` 1 so the limit runs from the first departure to the later arrival. Newark Light Rail's underground stations (Warren Street, Washington Street, Military Park, and the Penn Station light rail platforms) also offer an adult one-way of `$0.85`. Fares v2 lists that product when both ends are those stops. The underground leg rules have `rule_priority` 1, so they replace the Newark Light Rail rules (priority 0) for such a leg. They also list the Newark Light Rail reduced one-ways and passes, which the underground chart does not price. That ticket is not valid outbound from Penn Station on weekday evenings, and the zip has no timeframes. So legs that start at the Penn Station light rail stops (area `njt_nlr_underground_penn`) match a priority 2 rule that also keeps the full `$1.90` adult fare. Fares v1 keeps the full-system adult fare, because a stop has one `zone_id`.
 
 Not encoded, because they are not a light rail leg price in this zip:
 
@@ -173,7 +175,7 @@ The process reads environment variables only.
 | `NJT_PROXY_ACCESS_KEY` | unset | When set, feed requests must send header `x-njt-proxy-key`. |
 | `NJT_TRACKS` | `on` | `on` adds platform stops to `/rail/gtfs.zip` and fills `assigned_stop_id` from `Track:` headsigns. `off` leaves both feeds unchanged. |
 | `NJT_TRACK_BOARDS` | `off` | `on` also polls TrainData `getTrainSchedule19Rec` when a headsign has no track. |
-| `NJT_TRACK_STATIONS` | the ten stations in the table above | Comma-separated station codes. Unknown codes are rejected. |
+| `NJT_TRACK_STATIONS` | the ten stations in the table above | Comma-separated station codes. Unknown codes, and a value with no code (such as `,`), are rejected. |
 | `NJT_TRACK_POLL_SECS` | `600` | Seconds for one full station-board cycle when boards are on. Allowed range 120–86400. |
 
 Rail and bus are different hosts. Test and production credentials are issued separately. A token from one is never sent to the other.

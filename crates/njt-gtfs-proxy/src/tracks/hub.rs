@@ -4,7 +4,6 @@
 //! only when the operator turns that fallback on.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
@@ -17,6 +16,10 @@ use super::catalog::Station;
 use super::enrich::{enrich_trip_updates, EnrichInput};
 use super::index::StaticIndex;
 use super::platforms::inject_platforms;
+
+/// How long [`TrackHub::index_needs_load`] waits after a failed load before
+/// asking for the static zip again.
+pub const INDEX_RETRY_AFTER: Duration = Duration::from_secs(5 * 60);
 
 /// Shared track enrichment for the rail routes.
 pub struct TrackHub {
@@ -36,8 +39,10 @@ pub struct TrackHub {
     clock: Arc<dyn Clock>,
     /// Static index from the last readable zip.
     index: RwLock<StaticIndex>,
-    /// Set after a zip has been examined, including a zip that could not be parsed.
-    index_ready: AtomicBool,
+    /// When [`TrackHub::inject`] last built `index`. `None` until a zip parses.
+    index_built_at: RwLock<Option<DateTime<Utc>>>,
+    /// When the static zip last failed to load or parse. Starts the retry backoff.
+    index_failed_at: RwLock<Option<DateTime<Utc>>>,
     /// Fresh board rows by station code.
     boards: RwLock<HashMap<String, CachedBoard>>,
 }
@@ -92,14 +97,15 @@ impl TrackHub {
         let board_ttl = poll_every.saturating_mul(2).max(Duration::from_secs(60));
         Self {
             enabled,
-            boards_enabled: enabled && boards_enabled && client.is_some(),
+            boards_enabled: enabled && boards_enabled && client.is_some() && !stations.is_empty(),
             stations,
             poll_every,
             board_ttl,
             client,
             clock,
             index: RwLock::new(StaticIndex::default()),
-            index_ready: AtomicBool::new(false),
+            index_built_at: RwLock::new(None),
+            index_failed_at: RwLock::new(None),
             boards: RwLock::new(HashMap::new()),
         }
     }
@@ -144,7 +150,8 @@ impl TrackHub {
     ///
     /// # Returns
     ///
-    /// `true` only when enrichment and a TrainData client are both configured.
+    /// `true` only when enrichment, a TrainData client, and at least one station
+    /// are all configured.
     ///
     /// # Errors
     ///
@@ -167,7 +174,7 @@ impl TrackHub {
         self.boards_enabled
     }
 
-    /// Reports whether a static zip has already been examined.
+    /// Reports whether a static index has been built.
     ///
     /// # Arguments
     ///
@@ -175,7 +182,8 @@ impl TrackHub {
     ///
     /// # Returns
     ///
-    /// `true` after [`TrackHub::inject`] has run.
+    /// `true` after [`TrackHub::inject`] has parsed a zip. A zip that could not be
+    /// parsed does not count.
     ///
     /// # Errors
     ///
@@ -195,7 +203,91 @@ impl TrackHub {
     /// assert!(!hub.index_ready());
     /// ```
     pub fn index_ready(&self) -> bool {
-        self.index_ready.load(Ordering::Relaxed)
+        read_slot(&self.index_built_at).is_some()
+    }
+
+    /// Reports whether trip-update handling should load the static zip now.
+    ///
+    /// # Arguments
+    ///
+    /// * `max_age` — Rebuild an index older than this. Zero means an index, once
+    ///   built, is only replaced when the static zip is fetched for a client.
+    ///
+    /// # Returns
+    ///
+    /// `false` when enrichment is off, or within [`INDEX_RETRY_AFTER`] of a failed
+    /// load. Otherwise `true` when no index has been built yet or the index is at
+    /// least `max_age` old.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. A poisoned lock is recovered.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::TrackHub;
+    /// use std::sync::Arc;
+    /// use std::time::Duration;
+    ///
+    /// let hub = TrackHub::new(true, false, Vec::new(), Duration::from_secs(600), None, Arc::new(njt_client::SystemClock));
+    /// assert!(hub.index_needs_load(Duration::from_secs(3600)));
+    /// hub.record_load_failure();
+    /// assert!(!hub.index_needs_load(Duration::from_secs(3600)));
+    /// ```
+    pub fn index_needs_load(&self, max_age: Duration) -> bool {
+        if !self.enabled {
+            return false;
+        }
+        let now = self.clock.now();
+        if read_slot(&self.index_failed_at)
+            .is_some_and(|failed| board_is_fresh(failed, now, INDEX_RETRY_AFTER))
+        {
+            return false;
+        }
+        match read_slot(&self.index_built_at) {
+            None => true,
+            Some(_) if max_age.is_zero() => false,
+            Some(built) => !board_is_fresh(built, now, max_age),
+        }
+    }
+
+    /// Starts the [`INDEX_RETRY_AFTER`] backoff after the static zip could not be
+    /// fetched or parsed.
+    ///
+    /// # Arguments
+    ///
+    /// This method takes no arguments.
+    ///
+    /// # Returns
+    ///
+    /// Nothing.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. A poisoned lock is recovered.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::TrackHub;
+    /// use std::sync::Arc;
+    /// use std::time::Duration;
+    ///
+    /// let hub = TrackHub::new(true, false, Vec::new(), Duration::from_secs(600), None, Arc::new(njt_client::SystemClock));
+    /// hub.record_load_failure();
+    /// assert!(!hub.index_ready());
+    /// ```
+    pub fn record_load_failure(&self) {
+        *write_slot(&self.index_failed_at) = Some(self.clock.now());
     }
 
     /// Adds platform stops to a rail zip and remembers its trips.
@@ -207,6 +299,8 @@ impl TrackHub {
     /// # Returns
     ///
     /// The injected zip, or `raw` when injection is off or the body cannot be rewritten.
+    /// A body that cannot be parsed keeps the previous index and starts the
+    /// [`INDEX_RETRY_AFTER`] backoff.
     ///
     /// # Errors
     ///
@@ -234,12 +328,14 @@ impl TrackHub {
             Ok(injection) => {
                 let mut guard = self.index.write().unwrap_or_else(|err| err.into_inner());
                 *guard = injection.index;
-                self.index_ready.store(true, Ordering::Relaxed);
+                drop(guard);
+                *write_slot(&self.index_built_at) = Some(self.clock.now());
+                *write_slot(&self.index_failed_at) = None;
                 injection.zip.map(Bytes::from).unwrap_or(raw)
             }
             Err(err) => {
-                tracing::debug!(error = %err, "rail GTFS was not rewritten with platform stops");
-                self.index_ready.store(true, Ordering::Relaxed);
+                tracing::warn!(error = %err, "rail GTFS was not rewritten with platform stops");
+                self.record_load_failure();
                 raw
             }
         }
@@ -298,7 +394,8 @@ impl TrackHub {
     ///
     /// # Returns
     ///
-    /// Nothing. The method runs until the task is dropped.
+    /// Nothing. The method runs until the task is dropped, and returns at once
+    /// when there is no TrainData client or no station.
     ///
     /// # Errors
     ///
@@ -322,6 +419,10 @@ impl TrackHub {
         let Some(client) = self.client.clone() else {
             return;
         };
+        if self.stations.is_empty() {
+            // Without a station the loop below would never reach an await point.
+            return;
+        }
         let gap = self
             .poll_every
             .checked_div(self.stations.len().max(1) as u32)
@@ -463,4 +564,74 @@ fn board_is_fresh(fetched_at: DateTime<Utc>, now: DateTime<Utc>, ttl: Duration) 
     fetched_at
         .checked_add_signed(step)
         .is_some_and(|expiry| now < expiry)
+}
+
+/// Reads a timestamp slot.
+///
+/// # Arguments
+///
+/// * `slot` — Lock holding an optional instant.
+///
+/// # Returns
+///
+/// A copy of the stored value.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic. A poisoned lock is recovered.
+///
+/// # Examples
+///
+/// Private helper; [`TrackHub::index_ready`] shows its effect:
+///
+/// ```
+/// use njt_gtfs_proxy::tracks::TrackHub;
+/// use std::sync::Arc;
+///
+/// let hub = TrackHub::new(true, false, Vec::new(), std::time::Duration::from_secs(600), None, Arc::new(njt_client::SystemClock));
+/// assert!(!hub.index_ready());
+/// ```
+fn read_slot(slot: &RwLock<Option<DateTime<Utc>>>) -> Option<DateTime<Utc>> {
+    *slot.read().unwrap_or_else(|err| err.into_inner())
+}
+
+/// Locks a timestamp slot for writing.
+///
+/// # Arguments
+///
+/// * `slot` — Lock holding an optional instant.
+///
+/// # Returns
+///
+/// The write guard.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic. A poisoned lock is recovered.
+///
+/// # Examples
+///
+/// Private helper; [`TrackHub::record_load_failure`] shows its effect:
+///
+/// ```
+/// use njt_gtfs_proxy::tracks::TrackHub;
+/// use std::sync::Arc;
+/// use std::time::Duration;
+///
+/// let hub = TrackHub::new(true, false, Vec::new(), Duration::from_secs(600), None, Arc::new(njt_client::SystemClock));
+/// hub.record_load_failure();
+/// assert!(!hub.index_needs_load(Duration::from_secs(60)));
+/// ```
+fn write_slot(
+    slot: &RwLock<Option<DateTime<Utc>>>,
+) -> std::sync::RwLockWriteGuard<'_, Option<DateTime<Utc>>> {
+    slot.write().unwrap_or_else(|err| err.into_inner())
 }

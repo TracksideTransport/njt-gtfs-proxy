@@ -16,47 +16,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::fares::FareError;
-
-/// Parses a GTFS CSV table.
-///
-/// # Arguments
-///
-/// * `bytes` — File bytes. A leading UTF-8 BOM is ignored.
-/// * `name` — File name used in errors.
-///
-/// # Returns
-///
-/// The header and each data row.
-///
-/// # Errors
-///
-/// Returns [`FareError`] when the bytes are not CSV.
-///
-/// # Panics
-///
-/// This function does not panic.
-///
-/// # Examples
-///
-/// See [`contribute`].
-fn read_table(bytes: &[u8], name: &str) -> Result<(Vec<String>, Vec<Vec<String>>), FareError> {
-    let text = String::from_utf8_lossy(bytes);
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
-    let mut reader = csv::Reader::from_reader(text.as_bytes());
-    let header = reader
-        .headers()
-        .map_err(|err| FareError::new(format!("{name}: {err}")))?
-        .iter()
-        .map(ToOwned::to_owned)
-        .collect();
-    let mut rows = Vec::new();
-    for record in reader.records() {
-        let record = record.map_err(|err| FareError::new(format!("{name}: {err}")))?;
-        rows.push(record.iter().map(ToOwned::to_owned).collect());
-    }
-    Ok((header, rows))
-}
+use crate::fares::{read_table, FareError};
 
 /// Network id for every light rail route.
 pub const NETWORK_ID: &str = "njt_light_rail";
@@ -195,6 +155,7 @@ pub(crate) fn contribute(
         }
     }
     let underground = systems.iter().find(|system| system.underground);
+    let mut penn_used = false;
     if let Some(underground) = underground {
         let nlr_stops: Vec<String> = zone_by_stop
             .iter()
@@ -205,6 +166,10 @@ pub(crate) fn contribute(
         for stop_id in nlr_stops {
             let name = names.get(&stop_id).map(String::as_str).unwrap_or("");
             if is_underground(name) {
+                if is_penn_light_rail(name) {
+                    stop_areas.push((stop_id.clone(), penn_area_id(underground)));
+                    penn_used = true;
+                }
                 stop_areas.push((stop_id, underground.area_id.clone()));
                 any = true;
             }
@@ -225,7 +190,30 @@ pub(crate) fn contribute(
             continue;
         }
         areas.push((system.area_id.clone(), system.area_name.clone()));
-        push_products(system, &mut products, &mut leg_rules);
+        let penn_area = (system.underground && penn_used).then(|| {
+            let area_id = penn_area_id(system);
+            areas.push((
+                area_id.clone(),
+                format!("{} (departing Penn Station)", system.area_name),
+            ));
+            area_id
+        });
+        let parent = if system.underground {
+            systems.iter().find(|candidate| {
+                !candidate.underground
+                    && candidate.leg_group == system.leg_group
+                    && used_areas.contains(&candidate.area_id)
+            })
+        } else {
+            None
+        };
+        push_products(
+            system,
+            parent,
+            penn_area.as_deref(),
+            &mut products,
+            &mut leg_rules,
+        );
         if !system.underground {
             attributes.push(vec![
                 format!("ow_adult_{}", system.area_id),
@@ -471,6 +459,23 @@ fn stops_for_systems(
 
 /// Whether `name` is one of the four Newark Light Rail underground stations.
 ///
+/// # Arguments
+///
+/// * `name` — GTFS `stop_name`. Case does not matter.
+///
+/// # Returns
+///
+/// `true` for Military Park, Warren Street, Washington Street, and the Newark
+/// Penn Station light rail platforms.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
 /// # Examples
 ///
 /// ```
@@ -484,16 +489,40 @@ pub fn is_underground(name: &str) -> bool {
     name.contains("MILITARY PARK")
         || name.contains("WARREN STREET")
         || name.contains("WASHINGTON STREET")
-        || (name.contains("PENN STATION") && name.contains("LIGHT RAIL"))
+        || is_penn_light_rail(&name)
 }
 
-/// Adds the non-empty products for one system.
-fn push_products(
-    system: &System,
-    products: &mut Vec<Vec<String>>,
-    leg_rules: &mut Vec<Vec<String>>,
-) {
-    let mut kinds = vec![
+/// Lists every product kind for one system, including kinds with no amount.
+///
+/// # Arguments
+///
+/// * `system` — One row of `light_rail.csv`.
+///
+/// # Returns
+///
+/// `(fare_product_id, name, rider_category_id, fare_media_id, amount)` in a
+/// fixed order, so the kinds of two systems line up by index. `amount` is
+/// empty when the chart has no price for that kind.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Private helper. Each listed kind with an amount becomes a product row:
+///
+/// ```
+/// use njt_gtfs_proxy::light_rail::NETWORK_ID;
+///
+/// assert_eq!(NETWORK_ID, "njt_light_rail");
+/// ```
+fn product_kinds(system: &System) -> Vec<(String, String, &'static str, &'static str, String)> {
+    vec![
         (
             format!("ow_adult_{}", system.area_id),
             format!("Adult one-way on {}", system.area_name),
@@ -550,9 +579,83 @@ fn push_products(
             "njt_school_monthly",
             system.student_monthly.clone(),
         ),
-    ];
-    kinds.retain(|kind| !kind.4.is_empty());
-    for (id, name, rider, media, amount) in kinds {
+    ]
+}
+
+/// Adds the non-empty products and leg rules for one system.
+///
+/// The Newark underground discount covers a leg whose two ends are both
+/// underground stations. Those stops are also in the Newark Light Rail area,
+/// so such a leg matches the system rules too. The underground rules get
+/// `rule_priority` 1 so a consumer picks them, and every Newark Light Rail
+/// product the underground chart does not price (reduced one-ways and passes)
+/// is listed on the underground rule as well, so those riders still have a
+/// fare.
+///
+/// The underground ticket is not valid outbound from Penn Station on weekday
+/// evenings, and this zip has no timeframes. A leg that starts at the Penn
+/// Station light rail stops therefore matches a rule with `rule_priority` 2
+/// that lists the full Newark Light Rail adult one-way next to the discount,
+/// so both stay available. Every other rule has an empty `rule_priority`,
+/// which GTFS reads as 0.
+///
+/// # Arguments
+///
+/// * `system` — One row of `light_rail.csv`.
+/// * `parent` — For the underground discount, the system whose products fill
+///   the kinds the discount does not price. `None` otherwise.
+/// * `penn_area` — For the underground discount, the area of the Penn Station
+///   light rail stops, when the zip has them.
+/// * `products` — `fare_products.txt` rows to append to.
+/// * `leg_rules` — `fare_leg_rules.txt` rows to append to, with
+///   `rule_priority` last.
+///
+/// # Returns
+///
+/// Nothing. Rows are appended.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Private helper. The leg rules it writes reach the zip through
+/// [`contribute`]:
+///
+/// ```
+/// use njt_gtfs_proxy::light_rail::is_underground;
+///
+/// assert!(is_underground("WARREN STREET LIGHT RAIL STATION"));
+/// ```
+fn push_products(
+    system: &System,
+    parent: Option<&System>,
+    penn_area: Option<&str>,
+    products: &mut Vec<Vec<String>>,
+    leg_rules: &mut Vec<Vec<String>>,
+) {
+    let priority = if system.underground { "1" } else { "" };
+    let leg_rule = |from_area: &str, product_id: &str, priority: &str| {
+        vec![
+            system.leg_group.clone(),
+            NETWORK_ID.to_string(),
+            from_area.to_string(),
+            system.area_id.clone(),
+            product_id.to_string(),
+            priority.to_string(),
+        ]
+    };
+    let kinds = product_kinds(system);
+    let mut rule_products = Vec::new();
+    for (id, name, rider, media, amount) in kinds.iter().cloned() {
+        if amount.is_empty() {
+            continue;
+        }
         products.push(vec![
             id.clone(),
             name,
@@ -561,12 +664,90 @@ fn push_products(
             amount,
             "USD".to_string(),
         ]);
-        leg_rules.push(vec![
-            system.leg_group.clone(),
-            NETWORK_ID.to_string(),
-            system.area_id.clone(),
-            system.area_id.clone(),
-            id,
-        ]);
+        rule_products.push(id);
     }
+    let mut penn_extra = Vec::new();
+    if let Some(parent) = parent {
+        for (own, inherited) in kinds.iter().zip(product_kinds(parent)) {
+            if inherited.4.is_empty() {
+                continue;
+            }
+            if own.4.is_empty() {
+                rule_products.push(inherited.0);
+            } else {
+                penn_extra.push(inherited.0);
+            }
+        }
+    }
+    for id in &rule_products {
+        leg_rules.push(leg_rule(&system.area_id, id, priority));
+    }
+    if let Some(penn_area) = penn_area {
+        for id in rule_products.iter().chain(&penn_extra) {
+            leg_rules.push(leg_rule(penn_area, id, "2"));
+        }
+    }
+}
+
+/// Whether `name` is a Newark Penn Station light rail platform.
+///
+/// # Arguments
+///
+/// * `name` — GTFS `stop_name`. Case does not matter.
+///
+/// # Returns
+///
+/// `true` for `PENN STATION LIGHT RAIL DEPARTURE` and `ARRIVAL`.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Private helper. Those stops are also underground:
+///
+/// ```
+/// use njt_gtfs_proxy::light_rail::is_underground;
+///
+/// assert!(is_underground("PENN STATION LIGHT RAIL ARRIVAL"));
+/// ```
+fn is_penn_light_rail(name: &str) -> bool {
+    let name = name.to_ascii_uppercase();
+    name.contains("PENN STATION") && name.contains("LIGHT RAIL")
+}
+
+/// Area id for legs that start at the Penn Station light rail stops.
+///
+/// # Arguments
+///
+/// * `underground` — The underground discount row of `light_rail.csv`.
+///
+/// # Returns
+///
+/// `{area_id}_penn`, for example `njt_nlr_underground_penn`.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Private helper. See [`contribute`] for where the area is written:
+///
+/// ```
+/// use njt_gtfs_proxy::light_rail::NETWORK_ID;
+///
+/// assert_eq!(NETWORK_ID, "njt_light_rail");
+/// ```
+fn penn_area_id(underground: &System) -> String {
+    format!("{}_penn", underground.area_id)
 }

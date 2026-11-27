@@ -14,7 +14,7 @@ use prost::Message;
 use super::board::BoardRow;
 use super::catalog::{platform_stop_id, Station};
 use super::headsign::track_from_headsign;
-use super::index::{same_train, StaticIndex};
+use super::index::{same_train, StaticIndex, TripLookup};
 use gtfs_realtime::trip_update::stop_time_update::StopTimeProperties;
 use gtfs_realtime::FeedMessage;
 
@@ -63,6 +63,7 @@ pub struct EnrichInput<'a> {
 /// ```
 pub fn enrich_trip_updates(bytes: &[u8], input: &EnrichInput<'_>) -> Option<Vec<u8>> {
     let mut message = FeedMessage::decode(bytes).ok()?;
+    let lookup = TripLookup::new(input.index);
     let mut changed = false;
     for entity in &mut message.entity {
         let Some(update) = entity.trip_update.as_mut() else {
@@ -70,15 +71,12 @@ pub fn enrich_trip_updates(bytes: &[u8], input: &EnrichInput<'_>) -> Option<Vec<
         };
         let start_date = update.trip.start_date.clone();
         if trip_id_blank(&update.trip.trip_id) {
-            if let Some(trip_id) = input
-                .index
-                .trip_for_train(&entity.id, start_date.as_deref())
-            {
+            if let Some(trip_id) = lookup.trip_for_train(&entity.id, start_date.as_deref()) {
                 update.trip.trip_id = Some(trip_id.to_string());
                 changed = true;
             }
         }
-        let trains = train_names(&entity.id, update.trip.trip_id.as_deref(), input.index);
+        let trains = train_names(&entity.id, update.trip.trip_id.as_deref(), &lookup);
         for stop in &mut update.stop_time_update {
             let Some(stop_id) = stop.stop_id.clone() else {
                 continue;
@@ -165,7 +163,7 @@ fn trip_id_blank(trip_id: &Option<String>) -> bool {
 ///
 /// * `entity_id` — Feed entity id, which added trips use as the train number.
 /// * `trip_id` — Static trip id when one is already known.
-/// * `index` — Scheduled trips.
+/// * `lookup` — Scheduled trips by id.
 ///
 /// # Returns
 ///
@@ -189,13 +187,11 @@ fn trip_id_blank(trip_id: &Option<String>) -> bool {
 fn train_names<'a>(
     entity_id: &'a str,
     trip_id: Option<&str>,
-    index: &'a StaticIndex,
+    lookup: &TripLookup<'a>,
 ) -> Vec<&'a str> {
     let mut names = vec![entity_id];
-    if let Some(trip_id) = trip_id {
-        if let Some(trip) = index.trips.iter().find(|trip| trip.trip_id == trip_id) {
-            names.push(trip.train.as_str());
-        }
+    if let Some(trip) = trip_id.and_then(|trip_id| lookup.trip(trip_id)) {
+        names.push(trip.train.as_str());
     }
     names
 }
@@ -246,7 +242,8 @@ fn station_for_stop<'a>(stop_id: &str, input: &'a EnrichInput<'_>) -> Option<&'a
 ///
 /// # Arguments
 ///
-/// * `station` — Stop's station. The track must be one of its public labels.
+/// * `station` — Stop's station. The row's track, already a public label from
+///   [`super::board::parse_board`], must be one of its tracks.
 /// * `trains` — Candidate train numbers.
 /// * `start_date` — Trip start date, when present.
 /// * `rows` — That station's fresh board.
@@ -310,5 +307,11 @@ fn board_track<'a>(
         return None;
     }
     let row = hits.first()?;
-    station.public_track(&row.track)
+    // `parse_board` already translated the raw track to a public label.
+    // Translating again would be wrong for a chained translation table.
+    station
+        .tracks
+        .iter()
+        .copied()
+        .find(|track| *track == row.track)
 }
