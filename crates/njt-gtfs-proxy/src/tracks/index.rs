@@ -106,11 +106,49 @@ impl StaticIndex {
     /// assert_eq!(index.trip_for_train("3846", None), Some("9"));
     /// ```
     pub fn trip_for_train(&self, train: &str, start_date: Option<&str>) -> Option<&str> {
-        let mut matches: Vec<&ScheduledTrip> = self
+        let matches: Vec<&ScheduledTrip> = self
             .trips
             .iter()
             .filter(|trip| same_train(&trip.train, train))
             .collect();
+        self.pick_trip(matches, start_date)
+    }
+
+    /// Narrows trips with the same train number to the one running on a date.
+    ///
+    /// # Arguments
+    ///
+    /// * `matches` — Trips whose train number matched.
+    /// * `start_date` — `TripDescriptor.start_date` (`YYYYMMDD`), when the feed set it.
+    ///
+    /// # Returns
+    ///
+    /// The trip id when exactly one trip is left. Without a date, more than one
+    /// match is ambiguous and returns `None`.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// Private helper shared by [`StaticIndex::trip_for_train`] and
+    /// [`TripLookup::trip_for_train`]:
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::StaticIndex;
+    ///
+    /// assert_eq!(StaticIndex::default().trip_for_train("3846", None), None);
+    /// ```
+    fn pick_trip<'a>(
+        &self,
+        mut matches: Vec<&'a ScheduledTrip>,
+        start_date: Option<&str>,
+    ) -> Option<&'a str> {
         if let Some(date) = start_date.map(str::trim).filter(|date| !date.is_empty()) {
             matches.retain(|trip| {
                 self.service_dates
@@ -126,6 +164,182 @@ impl StaticIndex {
             None
         }
     }
+}
+
+/// Hash lookups over a [`StaticIndex`] for one trip-update feed.
+///
+/// [`StaticIndex::trip_for_train`] scans every trip. A feed has hundreds of
+/// entities and the index has thousands of trips, so the enricher builds this
+/// once per feed and then finds each entity's trip in constant time.
+#[derive(Debug)]
+pub struct TripLookup<'a> {
+    /// The index the maps point into.
+    index: &'a StaticIndex,
+    /// `trip_id` to its trip. The first row wins when an id repeats.
+    by_id: HashMap<&'a str, &'a ScheduledTrip>,
+    /// [`train_key`] to every trip with that train number, in index order.
+    by_train: HashMap<String, Vec<&'a ScheduledTrip>>,
+}
+
+impl<'a> TripLookup<'a> {
+    /// Builds the maps for `index`.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` — The static index to look into.
+    ///
+    /// # Returns
+    ///
+    /// The lookup.
+    ///
+    /// # Errors
+    ///
+    /// This function does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This function does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::{StaticIndex, TripLookup};
+    ///
+    /// let index = StaticIndex::default();
+    /// assert!(TripLookup::new(&index).trip("9").is_none());
+    /// ```
+    pub fn new(index: &'a StaticIndex) -> Self {
+        let mut by_id = HashMap::new();
+        let mut by_train: HashMap<String, Vec<&'a ScheduledTrip>> = HashMap::new();
+        for trip in &index.trips {
+            by_id.entry(trip.trip_id.as_str()).or_insert(trip);
+            if let Some(key) = train_key(&trip.train) {
+                by_train.entry(key).or_default().push(trip);
+            }
+        }
+        Self {
+            index,
+            by_id,
+            by_train,
+        }
+    }
+
+    /// Finds a scheduled trip by `trip_id`.
+    ///
+    /// # Arguments
+    ///
+    /// * `trip_id` — `trips.trip_id`.
+    ///
+    /// # Returns
+    ///
+    /// The trip, or `None` when the index does not have it.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::{ScheduledTrip, StaticIndex, TripLookup};
+    ///
+    /// let index = StaticIndex {
+    ///     trips: vec![ScheduledTrip {
+    ///         trip_id: "9".to_string(),
+    ///         service_id: "1".to_string(),
+    ///         train: "3846".to_string(),
+    ///     }],
+    ///     ..StaticIndex::default()
+    /// };
+    /// assert_eq!(TripLookup::new(&index).trip("9").map(|trip| trip.train.as_str()), Some("3846"));
+    /// ```
+    pub fn trip(&self, trip_id: &str) -> Option<&'a ScheduledTrip> {
+        self.by_id.get(trip_id).copied()
+    }
+
+    /// Same result as [`StaticIndex::trip_for_train`], without a full scan.
+    ///
+    /// # Arguments
+    ///
+    /// * `train` — Entity id or other train number.
+    /// * `start_date` — `TripDescriptor.start_date` (`YYYYMMDD`), when the feed set it.
+    ///
+    /// # Returns
+    ///
+    /// A trip id when exactly one scheduled trip matches.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::tracks::{ScheduledTrip, StaticIndex, TripLookup};
+    ///
+    /// let index = StaticIndex {
+    ///     trips: vec![ScheduledTrip {
+    ///         trip_id: "11".to_string(),
+    ///         service_id: "1".to_string(),
+    ///         train: "0510".to_string(),
+    ///     }],
+    ///     ..StaticIndex::default()
+    /// };
+    /// assert_eq!(TripLookup::new(&index).trip_for_train("510", None), Some("11"));
+    /// ```
+    pub fn trip_for_train(&self, train: &str, start_date: Option<&str>) -> Option<&'a str> {
+        let key = train_key(train)?;
+        let matches = self.by_train.get(&key).cloned().unwrap_or_default();
+        self.index.pick_trip(matches, start_date)
+    }
+}
+
+/// Normalizes a train number so equal keys mean [`same_train`] is true.
+///
+/// # Arguments
+///
+/// * `train` — A `trip_short_name`, `block_id`, or entity id.
+///
+/// # Returns
+///
+/// `None` for a blank value. An integer becomes its decimal value without
+/// leading zeros. Anything else is trimmed and upper-cased.
+///
+/// # Errors
+///
+/// This function does not return an error.
+///
+/// # Panics
+///
+/// This function does not panic.
+///
+/// # Examples
+///
+/// Private helper. Its keys agree with [`same_train`]:
+///
+/// ```
+/// use njt_gtfs_proxy::tracks::same_train;
+///
+/// assert!(same_train("0510", "510"));
+/// assert!(same_train("a125", "A125"));
+/// ```
+fn train_key(train: &str) -> Option<String> {
+    let train = train.trim();
+    if train.is_empty() {
+        return None;
+    }
+    Some(match train.parse::<u32>() {
+        Ok(number) => number.to_string(),
+        Err(_) => train.to_ascii_uppercase(),
+    })
 }
 
 /// Reports whether two train numbers are the same, ignoring leading zeros.

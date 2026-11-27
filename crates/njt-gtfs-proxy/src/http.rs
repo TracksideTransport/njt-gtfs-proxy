@@ -37,6 +37,70 @@ pub(crate) struct AppState {
     pub(crate) access_key: Option<Secret>,
     /// Platform injection and trip-update enrichment.
     pub(crate) tracks: Arc<TrackHub>,
+    /// [`FARE_HEADER`] value for the rail zip last served.
+    pub(crate) fare_state: Arc<FareStateMemo>,
+}
+
+/// Remembers the [`FARE_HEADER`] value for the rail zip body last served.
+///
+/// Cache hits hand out clones of the same [`bytes::Bytes`], which share one
+/// allocation. The memo keeps a clone of that body, so a body with the same
+/// pointer and length is the same zip and is not opened again. Holding the
+/// clone also stops the allocation from being reused by a different body.
+#[derive(Debug, Default)]
+pub(crate) struct FareStateMemo {
+    /// The body and its header value.
+    last: std::sync::Mutex<Option<(bytes::Bytes, &'static str)>>,
+}
+
+impl FareStateMemo {
+    /// Returns [`FARE_HEADER_ADDED`] or [`FARE_HEADER_PASSTHROUGH`] for `body`.
+    ///
+    /// # Arguments
+    ///
+    /// * `body` — The rail static zip about to be served.
+    ///
+    /// # Returns
+    ///
+    /// [`FARE_HEADER_ADDED`] when the zip has `fare_rules.txt`, otherwise
+    /// [`FARE_HEADER_PASSTHROUGH`]. The zip is opened only for a body not seen
+    /// on the previous call.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return an error.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. A poisoned lock is recovered.
+    ///
+    /// # Examples
+    ///
+    /// Crate-private. The header it fills is public:
+    ///
+    /// ```
+    /// use njt_gtfs_proxy::fares::{FARE_HEADER, FARE_HEADER_PASSTHROUGH};
+    ///
+    /// assert_eq!(FARE_HEADER, "x-njt-fares");
+    /// assert_eq!(FARE_HEADER_PASSTHROUGH, "passthrough");
+    /// ```
+    pub(crate) fn state_for(&self, body: &bytes::Bytes) -> &'static str {
+        {
+            let last = self.last.lock().unwrap_or_else(|err| err.into_inner());
+            if let Some((seen, state)) = last.as_ref() {
+                if seen.as_ptr() == body.as_ptr() && seen.len() == body.len() {
+                    return state;
+                }
+            }
+        }
+        let state = if fares::zip_has_fare_rules(body) {
+            FARE_HEADER_ADDED
+        } else {
+            FARE_HEADER_PASSTHROUGH
+        };
+        *self.last.lock().unwrap_or_else(|err| err.into_inner()) = Some((body.clone(), state));
+        state
+    }
 }
 
 /// Liveness body.
@@ -465,7 +529,11 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
         Err(err) => Err(err),
     };
     match fetched {
-        Ok((body, hit)) => feed_response(feed, body, hit, ttl_of(state, feed), api),
+        Ok((body, hit)) => {
+            let fare_state = (api == ApiKind::Rail && feed == Feed::Static)
+                .then(|| state.fare_state.state_for(&body));
+            feed_response(feed, body, hit, ttl_of(state, feed), fare_state)
+        }
         Err(err) => {
             tracing::warn!(api = %api, feed = %feed, error = %err, "feed request failed");
             error_response(&err)
@@ -618,7 +686,8 @@ fn ttl_of(state: &AppState, feed: Feed) -> Duration {
 /// * `body` — Payload bytes.
 /// * `hit` — Whether the response cache supplied the body.
 /// * `ttl` — Value used for `Cache-Control: max-age`.
-/// * `api` — Rail responses for the static zip also set [`FARE_HEADER`].
+/// * `fare_state` — [`FARE_HEADER`] value for the rail static zip, from
+///   [`FareStateMemo::state_for`]. `None` for every other feed.
 ///
 /// # Returns
 ///
@@ -645,7 +714,7 @@ fn feed_response(
     body: bytes::Bytes,
     hit: bool,
     ttl: Duration,
-    api: ApiKind,
+    fare_state: Option<&'static str>,
 ) -> Response {
     let cache_control = format!("max-age={}", ttl.as_secs());
     let hit_label = if hit { "hit" } else { "miss" };
@@ -654,12 +723,7 @@ fn feed_response(
         .header(header::CONTENT_TYPE, feed.content_type())
         .header(header::CACHE_CONTROL, cache_control)
         .header("x-cache", hit_label);
-    if api == ApiKind::Rail && feed == Feed::Static {
-        let fare_state = if fares::zip_has_fare_rules(&body) {
-            FARE_HEADER_ADDED
-        } else {
-            FARE_HEADER_PASSTHROUGH
-        };
+    if let Some(fare_state) = fare_state {
         builder = builder.header(FARE_HEADER, fare_state);
     }
     builder.body(Body::from(body)).unwrap_or_else(|_| {
@@ -900,4 +964,26 @@ fn json_error(
     builder
         .body(Body::from(payload.to_string()))
         .unwrap_or_else(|_| Response::new(Body::from("{\"error\":\"internal\"}")))
+}
+
+#[cfg(test)]
+#[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fare_state_is_reused_for_the_same_body_and_recomputed_for_a_new_one() {
+        let memo = FareStateMemo::default();
+        let body = bytes::Bytes::from(b"not-a-zip".to_vec());
+        assert_eq!(memo.state_for(&body), FARE_HEADER_PASSTHROUGH);
+
+        // Pretend the zip had fare rules. A clone of the same body (a cache hit)
+        // must reuse the remembered value instead of opening the bytes again.
+        *memo.last.lock().unwrap() = Some((body.clone(), FARE_HEADER_ADDED));
+        assert_eq!(memo.state_for(&body.clone()), FARE_HEADER_ADDED);
+
+        // Equal bytes in a new allocation are a different response body.
+        let fresh = bytes::Bytes::from(b"not-a-zip".to_vec());
+        assert_eq!(memo.state_for(&fresh), FARE_HEADER_PASSTHROUGH);
+    }
 }

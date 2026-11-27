@@ -849,6 +849,7 @@ impl Config {
             cache: FeedCache::new(self.rt_ttl, self.static_ttl, clock),
             access_key: self.access_key.clone(),
             tracks: Arc::clone(&tracks),
+            fare_state: Arc::default(),
         };
         Ok((router_from_state(state), tracks))
     }

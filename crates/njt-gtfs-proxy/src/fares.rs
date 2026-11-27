@@ -1617,6 +1617,9 @@ fn product_file(products: &[Product]) -> Result<Vec<u8>, FareError> {
 
 /// Writes `fare_leg_rules.txt` in both directions.
 ///
+/// Rail rules leave `rule_priority` empty (0). The column exists for the
+/// Newark underground discount that light rail appends, which uses 1.
+///
 /// # Arguments
 ///
 /// * `products` — Products, each tied to one area pair.
@@ -1655,6 +1658,7 @@ fn leg_rules(products: &[Product]) -> Result<Vec<u8>, FareError> {
                 from.clone(),
                 to.clone(),
                 product.id.clone(),
+                String::new(),
             ]);
         }
     }
@@ -1667,6 +1671,7 @@ fn leg_rules(products: &[Product]) -> Result<Vec<u8>, FareError> {
             "from_area_id",
             "to_area_id",
             "fare_product_id",
+            "rule_priority",
         ],
         rows,
     )
@@ -2486,8 +2491,93 @@ mod tests {
         assert!(transfers.contains("njt_hblr,njt_hblr,3,3600,1,0,"));
         assert!(transfers.contains("njt_nlr,njt_nlr,3,3600,1,0,"));
         let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
-        assert!(leg.contains("njt_nlr,njt_light_rail,njt_nlr_underground,njt_nlr_underground,ow_adult_njt_nlr_underground"));
+        assert!(leg.contains("njt_nlr,njt_light_rail,njt_nlr_underground,njt_nlr_underground,ow_adult_njt_nlr_underground,1\n"));
         assert!(leg.contains("ow_adult_njt_stop_105_njt_stop_148"));
+        assert!(leg.lines().next().unwrap_or("").ends_with(",rule_priority"));
+    }
+
+    #[test]
+    fn underground_rules_outrank_the_system_fare_and_keep_reduced_products() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            "stops.txt".to_string(),
+            b"stop_id,stop_name,zone_id\n6900,MILITARY PARK LIGHT RAIL STATION,336\n26326,PENN STATION LIGHT RAIL DEPARTURE,336\n6907,DAVENPORT AVENUE LIGHT RAIL STATION,336\n".to_vec(),
+        );
+        files.insert(
+            "routes.txt".to_string(),
+            b"route_id,route_short_name,route_type\n13,NLR,113\n".to_vec(),
+        );
+        files.insert(
+            "trips.txt".to_string(),
+            b"trip_id,route_id\nn1,13\n".to_vec(),
+        );
+        files.insert(
+            "stop_times.txt".to_string(),
+            b"trip_id,stop_id\nn1,6900\nn1,26326\nn1,6907\n".to_vec(),
+        );
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        let leg = read_named(&augmented.bytes, "fare_leg_rules.txt");
+        let underground: Vec<&str> = leg
+            .lines()
+            .filter(|line| line.contains(",njt_nlr_underground,njt_nlr_underground,"))
+            .collect();
+        assert!(
+            underground.iter().all(|line| line.ends_with(",1")),
+            "{underground:?}"
+        );
+        for product in [
+            "ow_adult_njt_nlr_underground",
+            "ow_child_njt_nlr",
+            "ow_senior_njt_nlr",
+            "ow_disabled_njt_nlr",
+            "ten_trip_njt_nlr",
+            "monthly_njt_nlr",
+            "school_monthly_njt_nlr",
+        ] {
+            assert!(
+                underground
+                    .iter()
+                    .any(|line| line.contains(&format!(",{product},"))),
+                "underground legs lack {product}: {underground:?}"
+            );
+        }
+        assert!(
+            !underground
+                .iter()
+                .any(|line| line.contains(",ow_adult_njt_nlr,")),
+            "the full adult fare is replaced underground"
+        );
+        let system: Vec<&str> = leg
+            .lines()
+            .filter(|line| line.contains(",njt_nlr,njt_nlr,"))
+            .collect();
+        assert!(!system.is_empty());
+        assert!(system.iter().all(|line| line.ends_with(',')), "{system:?}");
+
+        // Outbound from Penn Station the discount is not valid on weekday
+        // evenings, so legs from there keep the full adult fare as well.
+        let penn: Vec<&str> = leg
+            .lines()
+            .filter(|line| line.contains(",njt_nlr_underground_penn,njt_nlr_underground,"))
+            .collect();
+        assert!(penn.iter().all(|line| line.ends_with(",2")), "{penn:?}");
+        for product in [
+            "ow_adult_njt_nlr_underground",
+            "ow_adult_njt_nlr",
+            "ow_senior_njt_nlr",
+            "monthly_njt_nlr",
+        ] {
+            assert!(
+                penn.iter()
+                    .any(|line| line.contains(&format!(",{product},"))),
+                "Penn legs lack {product}: {penn:?}"
+            );
+        }
+        let stop_areas = read_named(&augmented.bytes, "stop_areas.txt");
+        assert!(stop_areas.contains("26326,njt_nlr_underground_penn"));
+        assert!(!stop_areas.contains("6900,njt_nlr_underground_penn"));
+        let areas = read_named(&augmented.bytes, "areas.txt");
+        assert!(areas.contains("njt_nlr_underground_penn,"));
     }
 
     #[test]
