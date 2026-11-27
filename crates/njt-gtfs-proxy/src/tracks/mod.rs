@@ -29,7 +29,7 @@ pub use catalog::{
 };
 pub use enrich::{enrich_trip_updates, EnrichInput};
 pub use headsign::track_from_headsign;
-pub use hub::TrackHub;
+pub use hub::{TrackHub, INDEX_RETRY_AFTER};
 pub use index::{same_train, ScheduledTrip, StaticIndex};
 pub use platforms::inject_platforms;
 
@@ -316,6 +316,61 @@ mod tests {
             .unwrap();
         assert_eq!(properties.stop_headsign.as_deref(), Some("On time"));
         assert_eq!(properties.assigned_stop_id.as_deref(), Some("105:track:9"));
+    }
+
+    #[test]
+    fn index_is_retried_after_a_failure_and_refreshed_when_stale() {
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let start = chrono::DateTime::parse_from_rfc3339("2026-01-15T12:00:00Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let clock = njt_client::ManualClock::new(start);
+        let hub = TrackHub::new(
+            true,
+            false,
+            vec![station("NY").unwrap()],
+            Duration::from_secs(600),
+            None,
+            Arc::new(clock.clone()),
+        );
+        let max_age = Duration::from_secs(6 * 60 * 60);
+        assert!(hub.index_needs_load(max_age));
+
+        let unreadable = bytes::Bytes::from_static(b"not a zip");
+        assert_eq!(hub.inject(unreadable.clone()), unreadable);
+        assert!(
+            !hub.index_ready(),
+            "a zip that did not parse is not an index"
+        );
+        assert!(!hub.index_needs_load(max_age), "backoff after a failure");
+        clock.advance(INDEX_RETRY_AFTER);
+        assert!(hub.index_needs_load(max_age), "retried after the backoff");
+
+        let _ = hub.inject(bytes::Bytes::from(tiny_zip()));
+        assert!(hub.index_ready());
+        assert!(!hub.index_needs_load(max_age));
+        assert!(!hub.index_needs_load(Duration::ZERO));
+        clock.advance(max_age);
+        assert!(hub.index_needs_load(max_age), "stale index is reloaded");
+        assert!(!hub.index_needs_load(Duration::ZERO));
+    }
+
+    #[test]
+    fn disabled_hub_never_loads_the_static_index() {
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let off = TrackHub::new(
+            false,
+            false,
+            Vec::new(),
+            Duration::from_secs(600),
+            None,
+            Arc::new(njt_client::SystemClock),
+        );
+        assert!(!off.index_needs_load(Duration::from_secs(60)));
     }
 
     #[test]

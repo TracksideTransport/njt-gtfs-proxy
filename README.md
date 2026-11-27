@@ -173,7 +173,7 @@ The process reads environment variables only.
 | `NJT_PROXY_ACCESS_KEY` | unset | When set, feed requests must send header `x-njt-proxy-key`. |
 | `NJT_TRACKS` | `on` | `on` adds platform stops to `/rail/gtfs.zip` and fills `assigned_stop_id` from `Track:` headsigns. `off` leaves both feeds unchanged. |
 | `NJT_TRACK_BOARDS` | `off` | `on` also polls TrainData `getTrainSchedule19Rec` when a headsign has no track. |
-| `NJT_TRACK_STATIONS` | the ten stations in the table above | Comma-separated station codes. Unknown codes are rejected. |
+| `NJT_TRACK_STATIONS` | the ten stations in the table above | Comma-separated station codes. Unknown codes, and a value with no code (such as `,`), are rejected. |
 | `NJT_TRACK_POLL_SECS` | `600` | Seconds for one full station-board cycle when boards are on. Allowed range 120–86400. |
 
 Rail and bus are different hosts. Test and production credentials are issued separately. A token from one is never sent to the other.

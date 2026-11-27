@@ -1193,7 +1193,8 @@ fn parse_switch(raw: Option<&str>, name: &str, default: bool) -> Result<bool, Co
 ///
 /// # Errors
 ///
-/// Returns [`ConfigError`] when a code is not in the catalog. The code is not a secret.
+/// Returns [`ConfigError`] when a code is not in the catalog, or when the value
+/// names no station at all (for example `,`). The code is not a secret.
 ///
 /// # Panics
 ///
@@ -1205,13 +1206,21 @@ fn parse_switch(raw: Option<&str>, name: &str, default: bool) -> Result<bool, Co
 /// use njt_gtfs_proxy::Config;
 ///
 /// assert!(Config::from_vars([("NJT_TRACK_STATIONS", "NOPE")]).is_err());
+/// assert!(Config::from_vars([("NJT_TRACK_STATIONS", " , ")]).is_err());
 /// ```
 fn parse_stations(raw: Option<&str>) -> Result<Vec<&'static crate::tracks::Station>, ConfigError> {
     let Some(raw) = raw.map(str::trim).filter(|value| !value.is_empty()) else {
         return Ok(STATIONS.iter().collect());
     };
-    resolve_codes(raw.split(','))
-        .map_err(|code| ConfigError::new(format!("NJT_TRACK_STATIONS has unknown station {code}")))
+    let stations = resolve_codes(raw.split(',')).map_err(|code| {
+        ConfigError::new(format!("NJT_TRACK_STATIONS has unknown station {code}"))
+    })?;
+    if stations.is_empty() {
+        return Err(ConfigError::new(
+            "NJT_TRACK_STATIONS names no station; leave it unset for the built-in list",
+        ));
+    }
+    Ok(stations)
 }
 
 /// Parses the station-board cycle length.

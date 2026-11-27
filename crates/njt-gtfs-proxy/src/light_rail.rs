@@ -16,47 +16,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::fares::FareError;
-
-/// Parses a GTFS CSV table.
-///
-/// # Arguments
-///
-/// * `bytes` — File bytes. A leading UTF-8 BOM is ignored.
-/// * `name` — File name used in errors.
-///
-/// # Returns
-///
-/// The header and each data row.
-///
-/// # Errors
-///
-/// Returns [`FareError`] when the bytes are not CSV.
-///
-/// # Panics
-///
-/// This function does not panic.
-///
-/// # Examples
-///
-/// See [`contribute`].
-fn read_table(bytes: &[u8], name: &str) -> Result<(Vec<String>, Vec<Vec<String>>), FareError> {
-    let text = String::from_utf8_lossy(bytes);
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
-    let mut reader = csv::Reader::from_reader(text.as_bytes());
-    let header = reader
-        .headers()
-        .map_err(|err| FareError::new(format!("{name}: {err}")))?
-        .iter()
-        .map(ToOwned::to_owned)
-        .collect();
-    let mut rows = Vec::new();
-    for record in reader.records() {
-        let record = record.map_err(|err| FareError::new(format!("{name}: {err}")))?;
-        rows.push(record.iter().map(ToOwned::to_owned).collect());
-    }
-    Ok((header, rows))
-}
+use crate::fares::{read_table, FareError};
 
 /// Network id for every light rail route.
 pub const NETWORK_ID: &str = "njt_light_rail";

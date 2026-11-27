@@ -453,7 +453,7 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
             async move {
                 let raw = client.fetch(feed).await?;
                 if api == ApiKind::Rail && feed == Feed::Static {
-                    Ok(finish_rail_static(&tracks, raw))
+                    Ok(finish_rail_static_blocking(tracks, raw).await)
                 } else {
                     Ok(raw)
                 }
@@ -477,7 +477,10 @@ async fn serve(state: &AppState, api: ApiKind, feed: Feed, headers: &HeaderMap) 
 ///
 /// Headsign parsing does not call TrainData. The static zip is fetched through
 /// the same cache as `/rail/gtfs.zip`, and rail `getGTFS` is tried with GET
-/// before a token POST. Bytes that are not a trip-update feed are returned as-is.
+/// before a token POST. The zip is loaded when no index exists yet or the index
+/// is older than the static TTL, and a failed load waits
+/// [`crate::tracks::INDEX_RETRY_AFTER`] before the next try. Bytes that are not
+/// a trip-update feed are returned as-is.
 ///
 /// # Arguments
 ///
@@ -515,7 +518,7 @@ async fn prepare_trips(
     if api != ApiKind::Rail || feed != Feed::TripUpdates || !state.tracks.enabled() {
         return body;
     }
-    if !state.tracks.index_ready() {
+    if state.tracks.index_needs_load(state.cache.static_ttl()) {
         if let Some(rail) = state.rail.clone() {
             let tracks = Arc::clone(&state.tracks);
             let loaded = state
@@ -525,11 +528,12 @@ async fn prepare_trips(
                     let tracks = Arc::clone(&tracks);
                     async move {
                         let raw = rail.fetch(Feed::Static).await?;
-                        Ok(finish_rail_static(&tracks, raw))
+                        Ok(finish_rail_static_blocking(tracks, raw).await)
                     }
                 })
                 .await;
             if let Err(err) = loaded {
+                state.tracks.record_load_failure();
                 tracing::warn!(error = %err, "static GTFS was not available for track matching");
             }
         }
@@ -666,6 +670,47 @@ fn feed_response(
             None,
         )
     })
+}
+
+/// Runs [`finish_rail_static`] on Tokio's blocking pool.
+///
+/// The rewrite unpacks and repacks the whole zip, which is seconds of CPU work.
+/// Running it on an async worker would stall unrelated requests.
+///
+/// # Arguments
+///
+/// * `tracks` — Platform catalog shared with the router.
+/// * `body` — Upstream rail `getGTFS` body.
+///
+/// # Returns
+///
+/// The zip served at `GET /rail/gtfs.zip`, or `body` unchanged when the
+/// blocking task panicked or was cancelled.
+///
+/// # Errors
+///
+/// This function does not return an error. A failed task is logged.
+///
+/// # Panics
+///
+/// This function does not panic. It must be called inside a Tokio runtime.
+///
+/// # Examples
+///
+/// ```
+/// use njt_gtfs_proxy::fares::FARE_HEADER;
+///
+/// assert_eq!(FARE_HEADER, "x-njt-fares");
+/// ```
+async fn finish_rail_static_blocking(tracks: Arc<TrackHub>, body: bytes::Bytes) -> bytes::Bytes {
+    let fallback = body.clone();
+    match tokio::task::spawn_blocking(move || finish_rail_static(&tracks, body)).await {
+        Ok(bytes) => bytes,
+        Err(err) => {
+            tracing::error!(error = %err, "rail GTFS rewrite task failed; serving the upstream zip");
+            fallback
+        }
+    }
 }
 
 /// Adds fare files, then platform stops, then fare areas on those platforms.

@@ -1720,6 +1720,11 @@ fn rail_route_rows(routes_txt: Option<&[u8]>) -> Result<Vec<Vec<String>>, FareEr
 
 /// Parses a GTFS CSV table into owned rows.
 ///
+/// The reader is lenient in the same way as the track index: rows may have
+/// more or fewer fields than the header, header names are trimmed, and a short
+/// row is padded with empty fields up to the header length. One ragged row in
+/// an upstream file therefore does not drop every fare from the zip.
+///
 /// # Arguments
 ///
 /// * `bytes` — File bytes. A leading UTF-8 BOM is ignored.
@@ -1727,7 +1732,8 @@ fn rail_route_rows(routes_txt: Option<&[u8]>) -> Result<Vec<Vec<String>>, FareEr
 ///
 /// # Returns
 ///
-/// The header and each data row.
+/// The trimmed header and each data row. Every row has at least as many
+/// fields as the header.
 ///
 /// # Errors
 ///
@@ -1746,20 +1752,29 @@ fn rail_route_rows(routes_txt: Option<&[u8]>) -> Result<Vec<Vec<String>>, FareEr
 ///
 /// assert!(augment_rail_gtfs(b"x").is_ok());
 /// ```
-fn read_table(bytes: &[u8], name: &str) -> Result<(Vec<String>, Vec<Vec<String>>), FareError> {
+pub(crate) fn read_table(
+    bytes: &[u8],
+    name: &str,
+) -> Result<(Vec<String>, Vec<Vec<String>>), FareError> {
     let text = String::from_utf8_lossy(bytes);
     let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
-    let mut reader = csv::Reader::from_reader(text.as_bytes());
-    let header = reader
+    let mut reader = csv::ReaderBuilder::new()
+        .flexible(true)
+        .from_reader(text.as_bytes());
+    let header: Vec<String> = reader
         .headers()
         .map_err(|err| FareError::new(format!("{name}: {err}")))?
         .iter()
-        .map(ToOwned::to_owned)
+        .map(|column| column.trim().to_owned())
         .collect();
     let mut rows = Vec::new();
     for record in reader.records() {
         let record = record.map_err(|err| FareError::new(format!("{name}: {err}")))?;
-        rows.push(record.iter().map(ToOwned::to_owned).collect());
+        let mut row: Vec<String> = record.iter().map(ToOwned::to_owned).collect();
+        if row.len() < header.len() {
+            row.resize(header.len(), String::new());
+        }
+        rows.push(row);
     }
     Ok((header, rows))
 }
@@ -2175,6 +2190,27 @@ mod tests {
         assert_eq!(airport.source_status, "live");
         assert!(catalog.stations.contains_key("105"));
         assert!(catalog.stations.contains_key("37953"));
+    }
+
+    #[test]
+    fn ragged_rows_and_padded_headers_still_get_fares() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            "stops.txt".to_string(),
+            b"stop_id, stop_name ,zone_id\n105,NEW YORK PENN STATION,329,\n148,TRENTON TRANSIT CENTER\n"
+                .to_vec(),
+        );
+        files.insert(
+            "routes.txt".to_string(),
+            b"route_id,route_short_name,route_type\n10,NEC,2,extra\n".to_vec(),
+        );
+        let augmented = augment_rail_gtfs(&write_zip(&files).expect("zip")).expect("augment");
+        assert!(augmented.fares_added);
+        let stops = read_named(&augmented.bytes, "stops.txt");
+        assert!(stops.contains("105,NEW YORK PENN STATION,njt_stop_105"));
+        assert!(stops.contains("148,TRENTON TRANSIT CENTER,njt_stop_148"));
+        let rules = read_named(&augmented.bytes, "fare_rules.txt");
+        assert!(rules.contains("ow_adult_njt_stop_105_njt_stop_148,njt_stop_105,njt_stop_148"));
     }
 
     #[test]
