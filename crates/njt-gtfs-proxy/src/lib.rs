@@ -1,6 +1,6 @@
 //! Local HTTP proxy that turns NJ Transit token-authenticated POSTs into plain GETs.
 //!
-//! GTFS clients, including [gtfs-mcp](https://github.com/sohampatwardhan/gtfs-mcp),
+//! GTFS clients, including [gtfs-mcp](https://github.com/TracksideTransport/gtfs-mcp),
 //! fetch a zip and three protobuf URLs. NJ Transit's rail and bus developer APIs
 //! instead require `POST` multipart form calls and a token. This process holds
 //! the credentials, caches the token, and serves:

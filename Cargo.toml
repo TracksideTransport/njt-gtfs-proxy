@@ -8,4 +8,4 @@ edition = "2021"
 license = "MIT"
 rust-version = "1.85"
 authors = ["Soham Patwardhan"]
-repository = "https://github.com/sohampatwardhan/njt-gtfs-proxy"
+repository = "https://github.com/TracksideTransport/njt-gtfs-proxy"
